@@ -15,7 +15,7 @@ import (
 func TestUsageErrors(t *testing.T) {
 	for _, args := range [][]string{
 		nil, {"bogus"}, {"set"},
-		{"portrait"}, {"portrait", "photo booth"}, {"edge", "ON"},
+		{"portrait"}, {"portrait", "photo booth"}, {"studio", "ON"}, {"edge", "on"},
 		{"mic"}, {"mic", "loud"},
 	} {
 		err := run(args, io.Discard)
@@ -103,7 +103,7 @@ func TestPrintStates(t *testing.T) {
 			App: "com.apple.PhotoBooth",
 			Enabled: map[videofx.Effect]bool{
 				videofx.Background: true, videofx.Portrait: false, videofx.Studio: true,
-				videofx.Edge: false, videofx.Reactions: true,
+				videofx.Reactions: true,
 			},
 			Image: "/tmp/a.png",
 			Mic:   videofx.Isolation,
@@ -115,9 +115,9 @@ func TestPrintStates(t *testing.T) {
 	if err := printStates(&out, apps, states); err != nil {
 		t.Fatal(err)
 	}
-	want := "APP                BACKGROUND  PORTRAIT  STUDIO  EDGE  REACTIONS  MIC        IMAGE\n" +
-		"Photo Booth        on          off       on      off   on         isolation  /tmp/a.png\n" +
-		"org.example.Other  off         -         -       -     -          -          -\n"
+	want := "APP                BACKGROUND  PORTRAIT  STUDIO  REACTIONS  MIC        IMAGE\n" +
+		"Photo Booth        on          off       on      on         isolation  /tmp/a.png\n" +
+		"org.example.Other  off         -         -       -          -          -\n"
 	if out.String() != want {
 		t.Errorf("printStates wrote:\n%s\nwant:\n%s", out.String(), want)
 	}

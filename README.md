@@ -2,8 +2,9 @@
 
 Set the macOS video effects from the command line. `videobg` changes what
 Control Center > Video Effects shows for each video call app: Background,
-Portrait, Studio Light, Edge Light, Reactions and Mic Mode. You can script it
-or put it on a schedule.
+Portrait, Studio Light, Reactions and Mic Mode. You can script it or put it on
+a schedule. Edge Light is not supported: see
+[docs/internals.md](docs/internals.md#why-no-edge-light).
 
 ```sh
 videobg set blue                     # a built-in gradient, for every default app
@@ -55,7 +56,6 @@ No admin rights or privacy prompts are needed.
 | `background` | Background |
 | `portrait` | Portrait |
 | `studio` | Studio Light |
-| `edge` | Edge Light |
 | `reactions` | Reactions |
 
 `videobg background on` is the same as `videobg on`.
@@ -108,9 +108,9 @@ each effect as `on` or `off`, the mic mode and the image path. `-` means the
 app does not support it, or has no image.
 
 ```
-APP            BACKGROUND  PORTRAIT  STUDIO  EDGE  REACTIONS  MIC        IMAGE
-Photo Booth    on          off       on      off   on         isolation  /Users/me/Pictures/office.jpg
-Google Chrome  off         off       off     off   on         -          -
+APP            BACKGROUND  PORTRAIT  STUDIO  REACTIONS  MIC        IMAGE
+Photo Booth    on          off       on      on         isolation  /Users/me/Pictures/office.jpg
+Google Chrome  off         off       off     on         -          -
 ```
 
 | Exit code | Meaning |

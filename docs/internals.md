@@ -37,8 +37,6 @@ as optional: when one is missing, only the command that needs it fails.
 
 ```objc
 BOOL      AVControlCenterVideoEffectsModuleIsEffectSupportedForBundleID(NSString *effect, NSString *bundleID);
-BOOL      AVControlCenterVideoEffectsModuleGetRingLightActiveForBundleID(NSString *bundleID);
-void      AVControlCenterVideoEffectsModuleSetRingLightActiveForBundleID(BOOL on, NSString *bundleID);
 NSInteger AVControlCenterMicrophoneModesModuleGetMicrophoneModeForBundleID(NSString *bundleID);
 BOOL      AVControlCenterMicrophoneModesModuleSetMicrophoneModeForBundleID(NSInteger mode, NSString *bundleID);
 NSArray  *AVControlCenterMicrophoneModesModuleGetSupportedMicrophoneModesForBundleID(NSString *bundleID);
@@ -48,16 +46,21 @@ NSArray  *AVControlCenterMicrophoneModesModuleGetSupportedMicrophoneModesForBund
 | --- | --- |
 | `portrait` | `AVControlCenterVideoEffectBackgroundBlur` |
 | `studio` | `AVControlCenterVideoEffectStudioLighting` |
-| `reactions` | `AVControlCenterVideoEffectReactions` |
-| `edge` | `Get`/`SetRingLightActiveForBundleID` |
+| `reactions` | `AVControlCenterVideoEffectGestures` |
 
-Edge Light is the odd one. The generic functions ignore
+The menu's Reactions switch is `AVControlCenterVideoEffectGestures`.
+`AVControlCenterVideoEffectReactions` is a different setting: it stays on
+while the switch is flipped, and changing it does not move the switch.
+
+## Why no Edge Light
+
+Edge Light cannot be switched from here. The generic functions ignore
 `AVControlCenterVideoEffectRingLight`: `IsEffectSupported` is false for it and
-`SetEffectEnabled` does nothing. The ring light functions do switch it, so
-`videobg` uses those and does not ask whether it is supported.
-
-`AVControlCenterVideoEffectGestures` is a separate switch for hand gestures
-that trigger reactions. `videobg` leaves it alone.
+`SetEffectEnabled` does nothing. `SetRingLightActiveForBundleID` changes the
+value that `GetRingLightActiveForBundleID` reports, but neither the switch nor
+the light moves. Flipping the switch in Control Center launches a separate
+process, `com.apple.controlcenter.ringlighthelper`, which draws the light. That
+is Control Center's own doing, and `videobg` does not script the UI.
 
 Mic modes are the public `AVCaptureMicrophoneMode` values: 0 standard, 1 wide
 spectrum, 2 voice isolation. The supported list is an `NSArray` of `NSNumber`

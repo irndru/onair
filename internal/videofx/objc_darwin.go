@@ -20,21 +20,19 @@ var (
 	backgroundToggled func(bundleID objc.ID) bool
 
 	// Optional: nil when this macOS version lacks the symbol.
-	effectSupported    func(effect, bundleID objc.ID) bool
-	ringLightActive    func(bundleID objc.ID) bool
-	setRingLightActive func(on bool, bundleID objc.ID)
-	getMicMode         func(bundleID objc.ID) int
-	setMicrophoneMode  func(mode int, bundleID objc.ID) bool
-	supportedMicModes  func(bundleID objc.ID) objc.ID
+	effectSupported   func(effect, bundleID objc.ID) bool
+	getMicMode        func(bundleID objc.ID) int
+	setMicrophoneMode func(mode int, bundleID objc.ID) bool
+	supportedMicModes func(bundleID objc.ID) objc.ID
 )
 
-// Edge has no constant here: Control Center switches it with the ring light
-// functions, and the generic ones ignore AVControlCenterVideoEffectRingLight.
+// The menu's Reactions switch is the Gestures effect. The Reactions effect
+// is a different setting that the menu does not show.
 var effectSymbols = map[Effect]string{
 	Background: "AVControlCenterVideoEffectBackgroundReplacement",
 	Portrait:   "AVControlCenterVideoEffectBackgroundBlur",
 	Studio:     "AVControlCenterVideoEffectStudioLighting",
-	Reactions:  "AVControlCenterVideoEffectReactions",
+	Reactions:  "AVControlCenterVideoEffectGestures",
 }
 
 var (
@@ -111,12 +109,6 @@ var load = sync.OnceValue(func() error {
 		return ""
 	}
 	optional(&effectSupported, "AVControlCenterVideoEffectsModuleIsEffectSupportedForBundleID")
-	if symbol := optional(
-		&ringLightActive, "AVControlCenterVideoEffectsModuleGetRingLightActiveForBundleID",
-		&setRingLightActive, "AVControlCenterVideoEffectsModuleSetRingLightActiveForBundleID",
-	); symbol != "" {
-		effectMissing[Edge] = symbol
-	}
 	micMissing = optional(
 		&getMicMode, "AVControlCenterMicrophoneModesModuleGetMicrophoneModeForBundleID",
 		&setMicrophoneMode, "AVControlCenterMicrophoneModesModuleSetMicrophoneModeForBundleID",
@@ -166,25 +158,17 @@ func isSupported(e Effect, bundleID string) bool {
 	if effectErr(e) != nil {
 		return false
 	}
-	// Edge reports unsupported through the generic function even where it works.
-	if e == Edge || effectSupported == nil {
+	if effectSupported == nil {
 		return true
 	}
 	return effectSupported(effectConsts[e], nsString(bundleID))
 }
 
 func isEnabled(e Effect, bundleID string) bool {
-	if e == Edge {
-		return ringLightActive(nsString(bundleID))
-	}
 	return effectEnabled(effectConsts[e], nsString(bundleID))
 }
 
 func setEnabled(e Effect, on bool, bundleID string) {
-	if e == Edge {
-		setRingLightActive(on, nsString(bundleID))
-		return
-	}
 	setEffectEnabled(effectConsts[e], on, nsString(bundleID))
 }
 

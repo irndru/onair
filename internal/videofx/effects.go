@@ -9,14 +9,13 @@ const (
 	Background Effect = iota
 	Portrait
 	Studio
-	Edge
 	Reactions
 )
 
-var effectNames = []string{"background", "portrait", "studio", "edge", "reactions"}
+var effectNames = []string{"background", "portrait", "studio", "reactions"}
 
 // Effects lists every effect in display order.
-var Effects = []Effect{Background, Portrait, Studio, Edge, Reactions}
+var Effects = []Effect{Background, Portrait, Studio, Reactions}
 
 func (e Effect) String() string { return effectNames[e] }
 
