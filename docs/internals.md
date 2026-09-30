@@ -2,7 +2,7 @@
 
 ## Where the setting lives
 
-macOS stores the Background setting per app, keyed by bundle identifier,
+macOS stores each video effect and the mic mode per app, keyed by bundle identifier,
 inside the camera daemon `cameracaptured`. There is no file to read and no way
 to list the apps it has a record for.
 
@@ -10,7 +10,7 @@ to list the apps it has a record for.
 but they only change the record of the calling process. Called from a
 terminal, they change nothing useful.
 
-## The five functions
+## The five background functions
 
 Control Center changes other apps' records through C functions exported by
 `/System/Library/Frameworks/AVFoundation.framework/AVFoundation`. They have no
@@ -29,6 +29,43 @@ BOOL   AVControlCenterVideoEffectsModuleHasBackgroundReplacementBeenToggledForBu
 
 `+[AVCaptureDevice isEligibleForBackgroundReplacement]` reports whether the
 Mac supports the effect. `videobg` checks it before any change.
+
+## The other effects and mic mode
+
+The same library exports more constants and functions. `videobg` treats them
+as optional: when one is missing, only the command that needs it fails.
+
+```objc
+BOOL      AVControlCenterVideoEffectsModuleIsEffectSupportedForBundleID(NSString *effect, NSString *bundleID);
+BOOL      AVControlCenterVideoEffectsModuleGetRingLightActiveForBundleID(NSString *bundleID);
+void      AVControlCenterVideoEffectsModuleSetRingLightActiveForBundleID(BOOL on, NSString *bundleID);
+NSInteger AVControlCenterMicrophoneModesModuleGetMicrophoneModeForBundleID(NSString *bundleID);
+BOOL      AVControlCenterMicrophoneModesModuleSetMicrophoneModeForBundleID(NSInteger mode, NSString *bundleID);
+NSArray  *AVControlCenterMicrophoneModesModuleGetSupportedMicrophoneModesForBundleID(NSString *bundleID);
+```
+
+| Command | Switched by |
+| --- | --- |
+| `portrait` | `AVControlCenterVideoEffectBackgroundBlur` |
+| `studio` | `AVControlCenterVideoEffectStudioLighting` |
+| `reactions` | `AVControlCenterVideoEffectReactions` |
+| `edge` | `Get`/`SetRingLightActiveForBundleID` |
+
+Edge Light is the odd one. The generic functions ignore
+`AVControlCenterVideoEffectRingLight`: `IsEffectSupported` is false for it and
+`SetEffectEnabled` does nothing. The ring light functions do switch it, so
+`videobg` uses those and does not ask whether it is supported.
+
+`AVControlCenterVideoEffectGestures` is a separate switch for hand gestures
+that trigger reactions. `videobg` leaves it alone.
+
+Mic modes are the public `AVCaptureMicrophoneMode` values: 0 standard, 1 wide
+spectrum, 2 voice isolation. The supported list is an `NSArray` of `NSNumber`
+and is empty for an app the daemon has no record of. Setting a mode outside
+the list raises an Objective-C exception, which would kill the process, so
+`videobg` checks the list first.
+
+## Behaviour
 
 The set functions persist before they return. They need no admin rights,
 entitlements or privacy prompts. The effect applies to the built-in camera

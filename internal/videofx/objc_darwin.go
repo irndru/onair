@@ -18,7 +18,29 @@ var (
 	effectEnabled     func(effect, bundleID objc.ID) bool
 	setEffectEnabled  func(effect objc.ID, on bool, bundleID objc.ID)
 	backgroundToggled func(bundleID objc.ID) bool
-	effectBackground  objc.ID
+
+	// Optional: nil when this macOS version lacks the symbol.
+	effectSupported    func(effect, bundleID objc.ID) bool
+	ringLightActive    func(bundleID objc.ID) bool
+	setRingLightActive func(on bool, bundleID objc.ID)
+	getMicMode         func(bundleID objc.ID) int
+	setMicrophoneMode  func(mode int, bundleID objc.ID) bool
+	supportedMicModes  func(bundleID objc.ID) objc.ID
+)
+
+// Edge has no constant here: Control Center switches it with the ring light
+// functions, and the generic ones ignore AVControlCenterVideoEffectRingLight.
+var effectSymbols = map[Effect]string{
+	Background: "AVControlCenterVideoEffectBackgroundReplacement",
+	Portrait:   "AVControlCenterVideoEffectBackgroundBlur",
+	Studio:     "AVControlCenterVideoEffectStudioLighting",
+	Reactions:  "AVControlCenterVideoEffectReactions",
+}
+
+var (
+	effectConsts  = map[Effect]objc.ID{}
+	effectMissing = map[Effect]string{} // the symbol each unavailable effect lacks
+	micMissing    string
 )
 
 var (
@@ -31,16 +53,20 @@ var (
 	selIsKindOfClass        = objc.RegisterName("isKindOfClass:")
 	selRespondsToSelector   = objc.RegisterName("respondsToSelector:")
 	selIsEligible           = objc.RegisterName("isEligibleForBackgroundReplacement")
+	selCount                = objc.RegisterName("count")
+	selObjectAtIndex        = objc.RegisterName("objectAtIndex:")
+	selIntegerValue         = objc.RegisterName("integerValue")
 )
+
+func missing(symbol string) error {
+	return fmt.Errorf("this macOS version is not supported: AVFoundation has no %s", symbol)
+}
 
 // load binds the private AVFoundation functions, once.
 var load = sync.OnceValue(func() error {
 	lib, err := purego.Dlopen(avFoundation, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if err != nil {
 		return err
-	}
-	missing := func(symbol string) error {
-		return fmt.Errorf("this macOS version is not supported: AVFoundation has no %s", symbol)
 	}
 	for _, f := range []struct {
 		fn   any
@@ -58,15 +84,44 @@ var load = sync.OnceValue(func() error {
 		}
 		purego.RegisterFunc(f.fn, addr)
 	}
-	const effect = "AVControlCenterVideoEffectBackgroundReplacement"
-	addr, err := purego.Dlsym(lib, effect)
-	if err != nil {
-		return missing(effect)
+	for e, symbol := range effectSymbols {
+		addr, err := purego.Dlsym(lib, symbol)
+		if err != nil {
+			effectMissing[e] = symbol
+			continue
+		}
+		effectConsts[e] = **(**objc.ID)(unsafe.Pointer(&addr))
 	}
-	effectBackground = **(**objc.ID)(unsafe.Pointer(&addr))
+	if symbol, ok := effectMissing[Background]; ok {
+		return missing(symbol)
+	}
 	if !objc.Send[bool](class("AVCaptureDevice"), selRespondsToSelector, selIsEligible) {
 		return missing("+[AVCaptureDevice isEligibleForBackgroundReplacement]")
 	}
+	// optional binds each function and returns the first symbol it cannot find.
+	optional := func(fns ...any) string {
+		for i := 0; i < len(fns); i += 2 {
+			name := fns[i+1].(string)
+			addr, err := purego.Dlsym(lib, name)
+			if err != nil {
+				return name
+			}
+			purego.RegisterFunc(fns[i], addr)
+		}
+		return ""
+	}
+	optional(&effectSupported, "AVControlCenterVideoEffectsModuleIsEffectSupportedForBundleID")
+	if symbol := optional(
+		&ringLightActive, "AVControlCenterVideoEffectsModuleGetRingLightActiveForBundleID",
+		&setRingLightActive, "AVControlCenterVideoEffectsModuleSetRingLightActiveForBundleID",
+	); symbol != "" {
+		effectMissing[Edge] = symbol
+	}
+	micMissing = optional(
+		&getMicMode, "AVControlCenterMicrophoneModesModuleGetMicrophoneModeForBundleID",
+		&setMicrophoneMode, "AVControlCenterMicrophoneModesModuleSetMicrophoneModeForBundleID",
+		&supportedMicModes, "AVControlCenterMicrophoneModesModuleGetSupportedMicrophoneModesForBundleID",
+	)
 	return nil
 })
 
@@ -99,12 +154,67 @@ func setURL(path, bundleID string) {
 	setBackgroundURL(class("NSURL").Send(selFileURLWithPath, nsString(path)), nsString(bundleID))
 }
 
-func isEnabled(bundleID string) bool {
-	return effectEnabled(effectBackground, nsString(bundleID))
+// effectErr reports why this macOS version cannot switch e, if it cannot.
+func effectErr(e Effect) error {
+	if symbol, ok := effectMissing[e]; ok {
+		return missing(symbol)
+	}
+	return nil
 }
 
-func setEnabled(on bool, bundleID string) {
-	setEffectEnabled(effectBackground, on, nsString(bundleID))
+func isSupported(e Effect, bundleID string) bool {
+	if effectErr(e) != nil {
+		return false
+	}
+	// Edge reports unsupported through the generic function even where it works.
+	if e == Edge || effectSupported == nil {
+		return true
+	}
+	return effectSupported(effectConsts[e], nsString(bundleID))
+}
+
+func isEnabled(e Effect, bundleID string) bool {
+	if e == Edge {
+		return ringLightActive(nsString(bundleID))
+	}
+	return effectEnabled(effectConsts[e], nsString(bundleID))
+}
+
+func setEnabled(e Effect, on bool, bundleID string) {
+	if e == Edge {
+		setRingLightActive(on, nsString(bundleID))
+		return
+	}
+	setEffectEnabled(effectConsts[e], on, nsString(bundleID))
+}
+
+func micErr() error {
+	if micMissing != "" {
+		return missing(micMissing)
+	}
+	return nil
+}
+
+func micMode(bundleID string) MicMode {
+	return MicMode(getMicMode(nsString(bundleID)))
+}
+
+// micModes lists the modes the app supports. Setting any other mode raises
+// an Objective-C exception.
+func micModes(bundleID string) []MicMode {
+	list := supportedMicModes(nsString(bundleID))
+	if list == 0 {
+		return nil
+	}
+	var modes []MicMode
+	for i := range objc.Send[int](list, selCount) {
+		modes = append(modes, MicMode(objc.Send[int](list.Send(selObjectAtIndex, i), selIntegerValue)))
+	}
+	return modes
+}
+
+func setMicMode(mode MicMode, bundleID string) {
+	setMicrophoneMode(int(mode), nsString(bundleID))
 }
 
 func toggled(bundleID string) bool {

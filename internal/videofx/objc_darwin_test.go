@@ -8,10 +8,19 @@ import (
 	"testing"
 )
 
-// TestLoad fails when Apple renames or removes the private symbols.
+// TestLoad fails when Apple renames or removes the private symbols the
+// background needs. It only logs the optional ones, which older macOS lacks.
 func TestLoad(t *testing.T) {
 	if err := load(); err != nil {
 		t.Fatal(err)
+	}
+	for _, e := range Effects {
+		if err := effectErr(e); err != nil {
+			t.Logf("%s: %v", e, err)
+		}
+	}
+	if err := micErr(); err != nil {
+		t.Logf("mic: %v", err)
 	}
 }
 

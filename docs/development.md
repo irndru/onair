@@ -17,7 +17,8 @@ You need Go 1.27 on your `PATH` and `make`. The Makefile sets
 ```
 cmd/videobg/          the command line: argument handling and output
 internal/videofx/
-  videofx.go          Current, SetImage, SetEnabled
+  videofx.go          Current, SetImage, SetEnabled, SetMic
+  effects.go          effect and mic mode names
   apps.go             app discovery and name resolution
   builtin.go          built-in gradients and image resolution
   objc_darwin.go      the bridge to AVFoundation and Foundation
@@ -36,7 +37,8 @@ functions.
 - `cmd/videobg` tests argument handling, app selection and output.
 - `internal/videofx` tests name and image resolution on every platform.
 - `objc_darwin_test.go` runs on macOS only. `TestLoad` binds every private
-  symbol, so it fails when Apple renames one. The rest test string conversion
+  symbol. It fails when Apple renames one the background needs and logs any
+  other that is missing. The rest test string conversion
   and app discovery against fixture `.app` bundles in a temp directory.
 
 To check a real change, use an app you are not in a call with:
@@ -45,10 +47,12 @@ To check a real change, use an app you are not in a call with:
 make build
 ./videobg status "photo booth"
 ./videobg set purple "photo booth"
+./videobg portrait on "photo booth"
+./videobg mic isolation "photo booth"
 ```
 
-Open Photo Booth, then Control Center > Video Effects, and confirm the image.
-Then restore what `status` showed first.
+Open Photo Booth, then Control Center > Video Effects, and confirm each
+change. Then restore what `status` showed first.
 
 Before a commit:
 

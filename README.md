@@ -1,14 +1,18 @@
 # videobg
 
-Set the macOS camera background from the command line. `videobg` changes the
-image behind Control Center > Video Effects > Background for each video call
-app, so you can script it or put it on a schedule.
+Set the macOS video effects from the command line. `videobg` changes what
+Control Center > Video Effects shows for each video call app: Background,
+Portrait, Studio Light, Edge Light, Reactions and Mic Mode. You can script it
+or put it on a schedule.
 
 ```sh
 videobg set blue                     # a built-in gradient, for every default app
 videobg set ~/Pictures/office.jpg    # your own image
 videobg set dark zoom.us "Google Chrome"
-videobg off                          # turn the effect off, keep the image
+videobg off                          # turn the background off, keep the image
+videobg portrait on                  # blur the background
+videobg studio on facetime
+videobg mic isolation
 videobg status
 ```
 
@@ -24,6 +28,9 @@ go install github.com/AndrewMcCraeCA/videobg/cmd/videobg@latest
 - macOS 15 or later
 - The built-in camera. USB webcams do not get the effect.
 
+Effects other than Background need a macOS version that has them. On an older
+one, those commands fail and name the missing symbol; the rest still work.
+
 No admin rights or privacy prompts are needed.
 
 ## Commands
@@ -31,13 +38,31 @@ No admin rights or privacy prompts are needed.
 | Command | Does |
 | --- | --- |
 | `videobg set <image> [app...]` | Set the background image and turn the effect on |
-| `videobg on [app...]` | Turn the effect on, keeping the image |
-| `videobg off [app...]` | Turn the effect off, keeping the image |
-| `videobg status [app...]` | Show the effect and image for each app |
+| `videobg on [app...]` | Turn the background on, keeping the image |
+| `videobg off [app...]` | Turn the background off, keeping the image |
+| `videobg <effect> on\|off [app...]` | Turn an effect on or off |
+| `videobg mic <mode> [app...]` | Set the mic mode |
+| `videobg status [app...]` | Show every effect, the mic mode and the image for each app |
 | `videobg apps` | List the apps videobg knows about |
 | `videobg backgrounds` | List the built-in images |
 | `videobg version` | Print the version |
 | `videobg help` | Print usage |
+
+## Effects and mic mode
+
+| `<effect>` | Control Center name |
+| --- | --- |
+| `background` | Background |
+| `portrait` | Portrait |
+| `studio` | Studio Light |
+| `edge` | Edge Light |
+| `reactions` | Reactions |
+
+`videobg background on` is the same as `videobg on`.
+
+`<mode>` is `standard`, `isolation` (Voice Isolation) or `wide` (Wide
+Spectrum). Not every app supports every mode. A command that names a mode or
+effect an app does not support fails and changes nothing.
 
 ## Images
 
@@ -78,12 +103,14 @@ osascript -e 'id of app "Zoom"'
 
 ## Output and exit codes
 
-`set`, `on`, `off` and `status` print one line per app: its name, `on` or
-`off`, and the image path (`-` if none).
+Every command that takes `[app...]` prints a header and one line per app:
+each effect as `on` or `off`, the mic mode and the image path. `-` means the
+app does not support it, or has no image.
 
 ```
-Photo Booth    on   /Users/me/Pictures/office.jpg
-Google Chrome  off  -
+APP            BACKGROUND  PORTRAIT  STUDIO  EDGE  REACTIONS  MIC        IMAGE
+Photo Booth    on          off       on      off   on         isolation  /Users/me/Pictures/office.jpg
+Google Chrome  off         off       off     off   on         -          -
 ```
 
 | Exit code | Meaning |

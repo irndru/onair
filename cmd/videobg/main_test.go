@@ -13,7 +13,11 @@ import (
 )
 
 func TestUsageErrors(t *testing.T) {
-	for _, args := range [][]string{nil, {"bogus"}, {"set"}} {
+	for _, args := range [][]string{
+		nil, {"bogus"}, {"set"},
+		{"portrait"}, {"portrait", "photo booth"}, {"edge", "ON"},
+		{"mic"}, {"mic", "loud"},
+	} {
 		err := run(args, io.Discard)
 		var usageErr usageError
 		if !errors.As(err, &usageErr) {
@@ -95,15 +99,25 @@ func TestSelectApps(t *testing.T) {
 func TestPrintStates(t *testing.T) {
 	apps := []videofx.App{{BundleID: "com.apple.PhotoBooth", Name: "Photo Booth"}}
 	states := []videofx.State{
-		{App: "com.apple.PhotoBooth", Enabled: true, Image: "/tmp/a.png"},
-		{App: "org.example.Other"},
+		{
+			App: "com.apple.PhotoBooth",
+			Enabled: map[videofx.Effect]bool{
+				videofx.Background: true, videofx.Portrait: false, videofx.Studio: true,
+				videofx.Edge: false, videofx.Reactions: true,
+			},
+			Image: "/tmp/a.png",
+			Mic:   videofx.Isolation,
+			MicOK: true,
+		},
+		{App: "org.example.Other", Enabled: map[videofx.Effect]bool{videofx.Background: false}},
 	}
 	var out bytes.Buffer
 	if err := printStates(&out, apps, states); err != nil {
 		t.Fatal(err)
 	}
-	want := "Photo Booth        on   /tmp/a.png\n" +
-		"org.example.Other  off  -\n"
+	want := "APP                BACKGROUND  PORTRAIT  STUDIO  EDGE  REACTIONS  MIC        IMAGE\n" +
+		"Photo Booth        on          off       on      off   on         isolation  /tmp/a.png\n" +
+		"org.example.Other  off         -         -       -     -          -          -\n"
 	if out.String() != want {
 		t.Errorf("printStates wrote:\n%s\nwant:\n%s", out.String(), want)
 	}
