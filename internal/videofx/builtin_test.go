@@ -47,3 +47,34 @@ func TestBuiltin(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveImageBuiltinFirst(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "blue"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dir)
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// ./blue means the file, whatever the built-ins.
+	if got, err := ResolveImage("./blue"); got != filepath.Join(wd, "blue") || err != nil {
+		t.Errorf("ResolveImage(./blue) = %q, %v", got, err)
+	}
+	if _, err := os.Stat(gradientDir); err != nil {
+		t.Skip("no built-in backgrounds:", err)
+	}
+	want, _ := BuiltinPath("blue")
+	for _, name := range []string{"blue", "BLUE"} {
+		if got, err := ResolveImage(name); got != want || err != nil {
+			t.Errorf("ResolveImage(%q) = %q, %v; want %q", name, got, err, want)
+		}
+	}
+}
+
+func TestBuiltinPathMiss(t *testing.T) {
+	if got, ok := BuiltinPath("nope"); ok || got != "" {
+		t.Errorf("BuiltinPath(nope) = %q, %v", got, ok)
+	}
+}

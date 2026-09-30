@@ -119,6 +119,10 @@ func apply(out io.Writer, args []string, change func(ids []string) error) error 
 	if err != nil {
 		return err
 	}
+	return applyTo(out, apps, args, change, videofx.Current)
+}
+
+func applyTo(out io.Writer, apps []videofx.App, args []string, change func(ids []string) error, current func(id string) (videofx.State, error)) error {
 	ids, err := selectApps(apps, args)
 	if err != nil {
 		return err
@@ -128,7 +132,7 @@ func apply(out io.Writer, args []string, change func(ids []string) error) error 
 	}
 	states := make([]videofx.State, len(ids))
 	for i, id := range ids {
-		if states[i], err = videofx.Current(id); err != nil {
+		if states[i], err = current(id); err != nil {
 			return err
 		}
 	}

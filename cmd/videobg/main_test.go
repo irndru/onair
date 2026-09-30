@@ -122,3 +122,56 @@ func TestPrintStates(t *testing.T) {
 		t.Errorf("printStates wrote:\n%s\nwant:\n%s", out.String(), want)
 	}
 }
+
+func TestApplyTo(t *testing.T) {
+	apps := []videofx.App{
+		{BundleID: "com.apple.PhotoBooth", Name: "Photo Booth", Known: true},
+		{BundleID: "us.zoom.xos", Name: "zoom.us", Known: true},
+	}
+	current := func(id string) (videofx.State, error) {
+		return videofx.State{App: id, Enabled: map[videofx.Effect]bool{videofx.Background: id == "us.zoom.xos"}}, nil
+	}
+	var changed []string
+	change := func(ids []string) error { changed = ids; return nil }
+
+	var out bytes.Buffer
+	if err := applyTo(&out, apps, []string{"zoom.us", "photo booth"}, change, current); err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"us.zoom.xos", "com.apple.PhotoBooth"}; !slices.Equal(changed, want) {
+		t.Errorf("changed %v, want %v", changed, want)
+	}
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(lines) != 3 || !strings.HasPrefix(lines[1], "zoom.us ") || !strings.HasPrefix(lines[2], "Photo Booth ") {
+		t.Errorf("output not in argument order:\n%s", out.String())
+	}
+
+	out.Reset()
+	failed := errors.New("failed")
+	if err := applyTo(&out, apps, nil, func([]string) error { return failed }, current); err != failed {
+		t.Errorf("change error: got %v", err)
+	}
+	if err := applyTo(&out, apps, nil, change, func(string) (videofx.State, error) { return videofx.State{}, failed }); err != failed {
+		t.Errorf("current error: got %v", err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("printed after an error:\n%s", out.String())
+	}
+}
+
+func TestPrintApps(t *testing.T) {
+	apps := []videofx.App{
+		{BundleID: "com.apple.PhotoBooth", Name: "Photo Booth", Known: true},
+		{BundleID: "com.example.Notes", Name: "Notes"},
+	}
+	var out bytes.Buffer
+	if err := printApps(&out, apps); err != nil {
+		t.Fatal(err)
+	}
+	want := "APP          BUNDLE ID             DEFAULT\n" +
+		"Photo Booth  com.apple.PhotoBooth  yes\n" +
+		"Notes        com.example.Notes     -\n"
+	if out.String() != want {
+		t.Errorf("printApps wrote:\n%s\nwant:\n%s", out.String(), want)
+	}
+}
