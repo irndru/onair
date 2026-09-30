@@ -23,6 +23,7 @@ type fakeBridge struct {
 	micMissing  error
 	apps        map[string]*fakeApp
 	bundles     map[string]bundle // by app path
+	refuseMic   bool
 	calls       []string
 }
 
@@ -62,8 +63,11 @@ func (f *fakeBridge) setURL(path, app string)       { f.record("setURL %s %s", p
 func (f *fakeBridge) micErr() error                 { return f.micMissing }
 func (f *fakeBridge) mic(app string) MicMode        { return f.app(app).mic }
 func (f *fakeBridge) micModes(app string) []MicMode { return f.app(app).micModes }
-func (f *fakeBridge) setMic(m MicMode, app string)  { f.record("setMic %s %s", m, app) }
-func (f *fakeBridge) toggled(app string) bool       { return f.app(app).toggled }
+func (f *fakeBridge) setMic(m MicMode, app string) bool {
+	f.record("setMic %s %s", m, app)
+	return !f.refuseMic
+}
+func (f *fakeBridge) toggled(app string) bool { return f.app(app).toggled }
 func (f *fakeBridge) bundleInfo(path string) (bundle, bool) {
 	b, ok := f.bundles[path]
 	return b, ok

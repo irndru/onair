@@ -42,15 +42,19 @@ func Current(app string) (State, error) {
 
 // SetImage sets the background image and turns the effect on.
 func SetImage(path string, apps ...string) error {
-	return change(apps, checkEffect(Background), func(b bridge, app string) {
+	return change(apps, checkEffect(Background), func(b bridge, app string) error {
 		b.setURL(path, app)
 		b.setEnabled(Background, true, app)
+		return nil
 	})
 }
 
 // SetEnabled turns an effect on or off.
 func SetEnabled(e Effect, on bool, apps ...string) error {
-	return change(apps, checkEffect(e), func(b bridge, app string) { b.setEnabled(e, on, app) })
+	return change(apps, checkEffect(e), func(b bridge, app string) error {
+		b.setEnabled(e, on, app)
+		return nil
+	})
 }
 
 // SetMic sets the mic mode.
@@ -64,7 +68,12 @@ func SetMic(mode MicMode, apps ...string) error {
 		}
 		return nil
 	}
-	return change(apps, check, func(b bridge, app string) { b.setMic(mode, app) })
+	return change(apps, check, func(b bridge, app string) error {
+		if !b.setMic(mode, app) {
+			return fmt.Errorf("macOS refused mic mode %s for %s", mode, app)
+		}
+		return nil
+	})
 }
 
 func checkEffect(e Effect) func(b bridge, app string) error {
@@ -83,8 +92,9 @@ func checkEffect(e Effect) func(b bridge, app string) error {
 }
 
 // change applies to every app, or to none when check fails for any of them.
-// The setters report nothing, so callers read the state back to confirm.
-func change(apps []string, check func(b bridge, app string) error, apply func(b bridge, app string)) error {
+// It stops at the first apply that fails. Only the mic setter reports
+// failure, so callers read the state back to confirm the rest.
+func change(apps []string, check func(b bridge, app string) error, apply func(b bridge, app string) error) error {
 	for _, app := range apps {
 		if app == "" || strings.ContainsAny(app, " \t\n") {
 			return fmt.Errorf("invalid bundle identifier %q", app)
@@ -100,7 +110,9 @@ func change(apps []string, check func(b bridge, app string) error, apply func(b 
 		}
 	}
 	for _, app := range apps {
-		apply(b, app)
+		if err := apply(b, app); err != nil {
+			return err
+		}
 	}
 	return nil
 }

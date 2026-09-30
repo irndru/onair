@@ -16,7 +16,7 @@ type bridge interface {
 	micErr() error // why this macOS has no mic mode, if it has none
 	mic(app string) MicMode
 	micModes(app string) []MicMode
-	setMic(m MicMode, app string)
+	setMic(m MicMode, app string) bool // false when the daemon refuses
 	toggled(app string) bool
 	bundleInfo(appPath string) (bundle, bool)
 }

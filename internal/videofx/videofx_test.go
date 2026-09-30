@@ -188,3 +188,18 @@ func TestOpenBridgeError(t *testing.T) {
 		t.Error("appsIn succeeded without a bridge")
 	}
 }
+
+func TestSetMicRefused(t *testing.T) {
+	f := useFake(t, &fakeBridge{
+		refuseMic: true,
+		apps:      map[string]*fakeApp{"a.one": {micModes: []MicMode{Standard}}, "a.two": {micModes: []MicMode{Standard}}},
+	})
+	err := SetMic(Standard, "a.one", "a.two")
+	if err == nil || !strings.Contains(err.Error(), "refused mic mode standard for a.one") {
+		t.Errorf("err = %v", err)
+	}
+	// It stops at the first refusal.
+	if want := []string{"setMic standard a.one"}; !slices.Equal(f.calls, want) {
+		t.Errorf("calls = %q, want %q", f.calls, want)
+	}
+}

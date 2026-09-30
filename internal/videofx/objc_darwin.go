@@ -195,8 +195,8 @@ func (a *avf) micModes(app string) []MicMode {
 	return modes
 }
 
-func (a *avf) setMic(mode MicMode, app string) {
-	a.setMicMode(int(mode), nsString(app))
+func (a *avf) setMic(mode MicMode, app string) bool {
+	return a.setMicMode(int(mode), nsString(app))
 }
 
 func (a *avf) toggled(app string) bool {
