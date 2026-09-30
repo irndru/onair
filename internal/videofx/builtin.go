@@ -26,9 +26,13 @@ var gradients = map[string]string{
 // Builtin returns the names of Apple's built-in backgrounds.
 func Builtin() []string { return slices.Sorted(maps.Keys(gradients)) }
 
+// BuiltinPath returns the path of a built-in background, ignoring case.
 func BuiltinPath(name string) (string, bool) {
 	file, ok := gradients[strings.ToLower(name)]
-	return filepath.Join(gradientDir, file), ok
+	if !ok {
+		return "", false
+	}
+	return filepath.Join(gradientDir, file), true
 }
 
 // ResolveImage turns a built-in name or a file path into an absolute path.

@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// State is what Control Center has recorded for one app.
 type State struct {
 	App     string
 	Enabled map[Effect]bool // holds only the effects the app supports
@@ -17,8 +18,10 @@ type State struct {
 	MicOK   bool // false when the app has no mic mode
 }
 
+// ErrNotEligible means the Mac cannot replace the camera background at all.
 var ErrNotEligible = errors.New("this Mac does not support camera backgrounds")
 
+// Current reads the state of one app.
 func Current(app string) (State, error) {
 	if err := load(); err != nil {
 		return State{}, err
@@ -44,10 +47,12 @@ func SetImage(path string, apps ...string) error {
 	})
 }
 
+// SetEnabled turns an effect on or off.
 func SetEnabled(e Effect, on bool, apps ...string) error {
 	return change(apps, checkEffect(e), func(app string) { setEnabled(e, on, app) })
 }
 
+// SetMic sets the mic mode.
 func SetMic(mode MicMode, apps ...string) error {
 	check := func(app string) error {
 		if err := micErr(); err != nil {

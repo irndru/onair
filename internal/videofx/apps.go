@@ -10,11 +10,12 @@ import (
 	"unicode"
 )
 
+// App is an installed app that can use the camera.
 type App struct {
 	BundleID string
 	Name     string
 	Toggled  bool // the background has been switched on or off for this app before
-	Known    bool
+	Known    bool // on the knownApps list
 }
 
 // Default reports whether commands given no app apply to this one.
@@ -61,26 +62,46 @@ func appsIn(dirs []string) ([]App, error) {
 	var apps []App
 	seen := map[string]bool{}
 	for _, dir := range dirs {
-		for _, pattern := range []string{"*.app", "*/*.app"} {
-			paths, _ := filepath.Glob(filepath.Join(dir, pattern))
-			for _, path := range paths {
-				b, ok := bundleInfo(path)
-				if !ok || seen[b.id] || !(b.camera || knownApps[b.id]) {
-					continue
-				}
-				seen[b.id] = true
-				apps = append(apps, App{
-					BundleID: b.id,
-					Name:     cmp.Or(clean(b.displayName), clean(b.name), strings.TrimSuffix(filepath.Base(path), ".app")),
-					Toggled:  toggled(b.id),
-					Known:    knownApps[b.id],
-				})
+		for _, path := range appPaths(dir) {
+			b, ok := bundleInfo(path)
+			if !ok || seen[b.id] || !(b.camera || knownApps[b.id]) {
+				continue
 			}
+			seen[b.id] = true
+			apps = append(apps, App{
+				BundleID: b.id,
+				Name:     cmp.Or(clean(b.displayName), clean(b.name), strings.TrimSuffix(filepath.Base(path), ".app")),
+				Toggled:  toggled(b.id),
+				Known:    knownApps[b.id],
+			})
 		}
 	}
 	slices.SortFunc(apps, func(a, b App) int { return cmp.Compare(a.BundleID, b.BundleID) })
 	return apps, nil
 }
+
+// appPaths lists the .app bundles in dir, then those one directory down.
+// Directory symlinks are followed, as /Applications has some.
+func appPaths(dir string) []string {
+	entries, _ := os.ReadDir(dir)
+	var top, nested []string
+	for _, e := range entries {
+		path := filepath.Join(dir, e.Name())
+		if isApp(e.Name()) {
+			top = append(top, path)
+			continue
+		}
+		sub, _ := os.ReadDir(path) // fails harmlessly for files
+		for _, s := range sub {
+			if isApp(s.Name()) {
+				nested = append(nested, filepath.Join(path, s.Name()))
+			}
+		}
+	}
+	return append(top, nested...)
+}
+
+func isApp(name string) bool { return strings.HasSuffix(name, ".app") }
 
 // clean drops invisible characters around a name, such as WhatsApp's leading U+200E.
 func clean(name string) string {

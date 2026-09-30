@@ -28,7 +28,7 @@ var (
 
 // The menu's Reactions switch is the Gestures effect. The Reactions effect
 // is a different setting that the menu does not show.
-var effectSymbols = map[Effect]string{
+var effectSymbols = [numEffects]string{
 	Background: "AVControlCenterVideoEffectBackgroundReplacement",
 	Portrait:   "AVControlCenterVideoEffectBackgroundBlur",
 	Studio:     "AVControlCenterVideoEffectStudioLighting",
@@ -36,8 +36,8 @@ var effectSymbols = map[Effect]string{
 }
 
 var (
-	effectConsts  = map[Effect]objc.ID{}
-	effectMissing = map[Effect]string{} // the symbol each unavailable effect lacks
+	effectConsts  [numEffects]objc.ID
+	effectMissing [numEffects]string // the symbol each unavailable effect lacks
 	micMissing    string
 )
 
@@ -60,27 +60,38 @@ func missing(symbol string) error {
 	return fmt.Errorf("this macOS version is not supported: AVFoundation has no %s", symbol)
 }
 
+// binding pairs a pointer to a func variable with the C symbol it calls.
+type binding struct {
+	fn   any
+	name string
+}
+
+// bind registers each binding and returns the first symbol it cannot find.
+func bind(lib uintptr, bs ...binding) string {
+	for _, b := range bs {
+		addr, err := purego.Dlsym(lib, b.name)
+		if err != nil {
+			return b.name
+		}
+		purego.RegisterFunc(b.fn, addr)
+	}
+	return ""
+}
+
 // load binds the private AVFoundation functions, once.
 var load = sync.OnceValue(func() error {
 	lib, err := purego.Dlopen(avFoundation, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if err != nil {
-		return err
+		return fmt.Errorf("open AVFoundation: %w", err)
 	}
-	for _, f := range []struct {
-		fn   any
-		name string
-	}{
-		{&getBackgroundURL, "AVControlCenterVideoEffectsModuleGetBackgroundReplacementURL"},
-		{&setBackgroundURL, "AVControlCenterVideoEffectsModuleSetBackgroundReplacementURL"},
-		{&effectEnabled, "AVControlCenterVideoEffectsModuleIsEffectEnabledForBundleID"},
-		{&setEffectEnabled, "AVControlCenterVideoEffectsModuleSetEffectEnabledForBundleID"},
-		{&backgroundToggled, "AVControlCenterVideoEffectsModuleHasBackgroundReplacementBeenToggledForBundleID"},
-	} {
-		addr, err := purego.Dlsym(lib, f.name)
-		if err != nil {
-			return missing(f.name)
-		}
-		purego.RegisterFunc(f.fn, addr)
+	if symbol := bind(lib,
+		binding{&getBackgroundURL, "AVControlCenterVideoEffectsModuleGetBackgroundReplacementURL"},
+		binding{&setBackgroundURL, "AVControlCenterVideoEffectsModuleSetBackgroundReplacementURL"},
+		binding{&effectEnabled, "AVControlCenterVideoEffectsModuleIsEffectEnabledForBundleID"},
+		binding{&setEffectEnabled, "AVControlCenterVideoEffectsModuleSetEffectEnabledForBundleID"},
+		binding{&backgroundToggled, "AVControlCenterVideoEffectsModuleHasBackgroundReplacementBeenToggledForBundleID"},
+	); symbol != "" {
+		return missing(symbol)
 	}
 	for e, symbol := range effectSymbols {
 		addr, err := purego.Dlsym(lib, symbol)
@@ -88,31 +99,20 @@ var load = sync.OnceValue(func() error {
 			effectMissing[e] = symbol
 			continue
 		}
+		// addr is the C address of an NSString *const. Read the pointer stored there.
 		effectConsts[e] = **(**objc.ID)(unsafe.Pointer(&addr))
 	}
-	if symbol, ok := effectMissing[Background]; ok {
+	if symbol := effectMissing[Background]; symbol != "" {
 		return missing(symbol)
 	}
 	if !objc.Send[bool](class("AVCaptureDevice"), selRespondsToSelector, selIsEligible) {
 		return missing("+[AVCaptureDevice isEligibleForBackgroundReplacement]")
 	}
-	// optional binds each function and returns the first symbol it cannot find.
-	optional := func(fns ...any) string {
-		for i := 0; i < len(fns); i += 2 {
-			name := fns[i+1].(string)
-			addr, err := purego.Dlsym(lib, name)
-			if err != nil {
-				return name
-			}
-			purego.RegisterFunc(fns[i], addr)
-		}
-		return ""
-	}
-	optional(&effectSupported, "AVControlCenterVideoEffectsModuleIsEffectSupportedForBundleID")
-	micMissing = optional(
-		&getMicMode, "AVControlCenterMicrophoneModesModuleGetMicrophoneModeForBundleID",
-		&setMicrophoneMode, "AVControlCenterMicrophoneModesModuleSetMicrophoneModeForBundleID",
-		&supportedMicModes, "AVControlCenterMicrophoneModesModuleGetSupportedMicrophoneModesForBundleID",
+	bind(lib, binding{&effectSupported, "AVControlCenterVideoEffectsModuleIsEffectSupportedForBundleID"})
+	micMissing = bind(lib,
+		binding{&getMicMode, "AVControlCenterMicrophoneModesModuleGetMicrophoneModeForBundleID"},
+		binding{&setMicrophoneMode, "AVControlCenterMicrophoneModesModuleSetMicrophoneModeForBundleID"},
+		binding{&supportedMicModes, "AVControlCenterMicrophoneModesModuleGetSupportedMicrophoneModesForBundleID"},
 	)
 	return nil
 })
@@ -148,7 +148,7 @@ func setURL(path, bundleID string) {
 
 // effectErr reports why this macOS version cannot switch e, if it cannot.
 func effectErr(e Effect) error {
-	if symbol, ok := effectMissing[e]; ok {
+	if symbol := effectMissing[e]; symbol != "" {
 		return missing(symbol)
 	}
 	return nil

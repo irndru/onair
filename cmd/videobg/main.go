@@ -168,7 +168,7 @@ func printStates(out io.Writer, apps []videofx.App, states []videofx.State) erro
 		for _, e := range videofx.Effects {
 			state := "-"
 			if on, ok := s.Enabled[e]; ok {
-				state = map[bool]string{true: "on", false: "off"}[on]
+				state = onOff(on)
 			}
 			fmt.Fprint(w, "\t", state)
 		}
@@ -179,6 +179,13 @@ func printStates(out io.Writer, apps []videofx.App, states []videofx.State) erro
 		fmt.Fprintf(w, "\t%s\t%s\n", mic, cmp.Or(s.Image, "-"))
 	}
 	return w.Flush()
+}
+
+func onOff(on bool) string {
+	if on {
+		return "on"
+	}
+	return "off"
 }
 
 func printApps(out io.Writer, apps []videofx.App) error {
