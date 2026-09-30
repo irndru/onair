@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"runtime/debug"
 	"slices"
@@ -14,7 +15,7 @@ import (
 	"github.com/AndrewMcCraeCA/videobg/internal/videofx"
 )
 
-const usage = `usage: videobg <command> [args]
+const usage = `usage: videobg [-v] <command> [args]
 
   set <image> [app...]          set the background image and turn it on
   on|off [app...]               turn the background on or off, keeping the image
@@ -31,6 +32,7 @@ const usage = `usage: videobg <command> [args]
 <image> is a built-in name or the path of an image file.
 <app> is a name from "videobg apps" or a bundle identifier.
 With no app, a command applies to every default app.
+-v, or VIDEOBG_DEBUG=1, prints debug output to stderr.
 `
 
 type usageError string
@@ -38,7 +40,15 @@ type usageError string
 func (e usageError) Error() string { return string(e) }
 
 func main() {
-	err := run(os.Args[1:], os.Stdout)
+	args := os.Args[1:]
+	verbose := len(args) > 0 && args[0] == "-v"
+	if verbose {
+		args = args[1:]
+	}
+	if verbose || os.Getenv("VIDEOBG_DEBUG") != "" {
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	}
+	err := run(args, os.Stdout)
 	var usageErr usageError
 	switch {
 	case err == nil:

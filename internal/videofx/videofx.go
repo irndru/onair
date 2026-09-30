@@ -5,6 +5,7 @@ package videofx
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 )
@@ -33,16 +34,20 @@ func Current(app string) (State, error) {
 			s.Enabled[e] = b.enabled(e, app)
 		}
 	}
+	var modes []MicMode
 	if b.micErr() == nil {
 		s.Mic = b.mic(app)
-		s.MicOK = slices.Contains(b.micModes(app), s.Mic)
+		modes = b.micModes(app)
+		s.MicOK = slices.Contains(modes, s.Mic)
 	}
+	slog.Debug("read", "app", app, "enabled", s.Enabled, "image", s.Image, "mic", int(s.Mic), "micModes", modes)
 	return s, nil
 }
 
 // SetImage sets the background image and turns the effect on.
 func SetImage(path string, apps ...string) error {
 	return change(apps, checkEffect(Background), func(b bridge, app string) error {
+		slog.Debug("set image", "app", app, "path", path)
 		b.setURL(path, app)
 		b.setEnabled(Background, true, app)
 		return nil
@@ -52,6 +57,7 @@ func SetImage(path string, apps ...string) error {
 // SetEnabled turns an effect on or off.
 func SetEnabled(e Effect, on bool, apps ...string) error {
 	return change(apps, checkEffect(e), func(b bridge, app string) error {
+		slog.Debug("set effect", "app", app, "effect", e, "on", on)
 		b.setEnabled(e, on, app)
 		return nil
 	})
@@ -69,7 +75,9 @@ func SetMic(mode MicMode, apps ...string) error {
 		return nil
 	}
 	return change(apps, check, func(b bridge, app string) error {
-		if !b.setMic(mode, app) {
+		ok := b.setMic(mode, app)
+		slog.Debug("set mic", "app", app, "mode", mode, "ok", ok)
+		if !ok {
 			return fmt.Errorf("macOS refused mic mode %s for %s", mode, app)
 		}
 		return nil
@@ -106,6 +114,7 @@ func change(apps []string, check func(b bridge, app string) error, apply func(b 
 	}
 	for _, app := range apps {
 		if err := check(b, app); err != nil {
+			slog.Debug("check failed, changing nothing", "app", app, "err", err)
 			return err
 		}
 	}

@@ -2,7 +2,9 @@ package videofx
 
 import (
 	"fmt"
+	"log/slog"
 	"path/filepath"
+	"syscall"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -69,15 +71,19 @@ func bind(lib uintptr, bs ...binding) string {
 	for _, b := range bs {
 		addr, err := purego.Dlsym(lib, b.name)
 		if err != nil {
+			slog.Debug("symbol missing", "name", b.name)
 			return b.name
 		}
 		purego.RegisterFunc(b.fn, addr)
+		slog.Debug("symbol bound", "name", b.name)
 	}
 	return ""
 }
 
 // newBridge binds the private AVFoundation functions.
 func newBridge() (bridge, error) {
+	version, _ := syscall.Sysctl("kern.osproductversion")
+	slog.Debug("opening AVFoundation", "macos", version, "path", avFoundation)
 	lib, err := purego.Dlopen(avFoundation, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if err != nil {
 		return nil, fmt.Errorf("open AVFoundation: %w", err)
@@ -95,11 +101,13 @@ func newBridge() (bridge, error) {
 	for e, symbol := range effectSymbols {
 		addr, err := purego.Dlsym(lib, symbol)
 		if err != nil {
+			slog.Debug("effect missing", "effect", Effect(e), "symbol", symbol)
 			a.effectMissing[e] = symbol
 			continue
 		}
 		// addr is the C address of an NSString *const. Read the pointer stored there.
 		a.effects[e] = **(**objc.ID)(unsafe.Pointer(&addr))
+		slog.Debug("effect bound", "effect", Effect(e), "value", goString(a.effects[e]))
 	}
 	if symbol := a.effectMissing[Background]; symbol != "" {
 		return nil, missing(symbol)

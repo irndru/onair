@@ -3,6 +3,7 @@ package videofx
 import (
 	"cmp"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -63,18 +64,22 @@ func appsIn(dirs []string) ([]App, error) {
 	var apps []App
 	seen := map[string]bool{}
 	for _, dir := range dirs {
-		for _, path := range appPaths(dir) {
+		paths := appPaths(dir)
+		slog.Debug("scanning", "dir", dir, "bundles", len(paths))
+		for _, path := range paths {
 			b, ok := br.bundleInfo(path)
 			if !ok || seen[b.id] || !(b.camera || knownApps[b.id]) {
 				continue
 			}
 			seen[b.id] = true
-			apps = append(apps, App{
+			app := App{
 				BundleID: b.id,
 				Name:     cmp.Or(clean(b.displayName), clean(b.name), strings.TrimSuffix(filepath.Base(path), ".app")),
 				Toggled:  br.toggled(b.id),
 				Known:    knownApps[b.id],
-			})
+			}
+			slog.Debug("app", "id", app.BundleID, "name", app.Name, "camera", b.camera, "known", app.Known, "toggled", app.Toggled)
+			apps = append(apps, app)
 		}
 	}
 	slices.SortFunc(apps, func(a, b App) int { return cmp.Compare(a.BundleID, b.BundleID) })
