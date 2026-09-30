@@ -70,7 +70,9 @@ the list raises an Objective-C exception, which would kill the process, so
 
 ## Behaviour
 
-The set functions persist before they return. They need no admin rights,
+The set functions persist before they return. Only the mic mode setter
+reports failure; `videobg` reads every app back after a change and prints
+what the daemon holds. They need no admin rights,
 entitlements or privacy prompts. The effect applies to the built-in camera
 only, not USB webcams.
 
@@ -82,9 +84,14 @@ built-in gradient comes back with `Versions/A/` in it.
 `videobg` uses [purego](https://github.com/ebitengine/purego) rather than cgo,
 so it builds with `CGO_ENABLED=0` and cross-vets from Linux.
 
-- `load()` opens AVFoundation once and binds each function with
-  `purego.Dlsym` and `purego.RegisterFunc`. `purego.RegisterLibFunc` would
-  panic on a missing symbol. `load()` instead returns an error naming it.
+- Everything that touches the system sits behind the unexported `bridge`
+  interface in `bridge.go`. `openBridge` builds it once. On macOS that is
+  `newBridge` in `objc_darwin.go`; elsewhere it returns an error. Tests swap
+  in a fake.
+- `newBridge` opens AVFoundation and binds each function with `purego.Dlsym`
+  and `purego.RegisterFunc`. `purego.RegisterLibFunc` would panic on a
+  missing symbol. `newBridge` instead returns an error naming it, or, for an
+  optional symbol, marks the effect or mic mode unavailable.
 - `Dlsym` on the effect constant gives the address of the pointer, so the code
   dereferences it once to get the `NSString`.
 - `objc.ID` is pointer-sized and passes as a pointer argument.

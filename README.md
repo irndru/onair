@@ -119,6 +119,13 @@ Google Chrome  off         off       off     on         -          -
 | 1 | The command failed. The reason is on stderr. |
 | 2 | The command line was wrong. Usage is on stderr. |
 
+For debug output on stderr, put `-v` before the command or set
+`VIDEOBG_DEBUG=1`:
+
+```sh
+videobg -v portrait on zoom.us
+```
+
 ## How it works
 
 `videobg` calls the same functions in AVFoundation that Control Center calls.

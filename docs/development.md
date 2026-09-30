@@ -21,8 +21,10 @@ internal/videofx/
   effects.go          effect and mic mode names
   apps.go             app discovery and name resolution
   builtin.go          built-in gradients and image resolution
+  bridge.go           the bridge interface over everything system-side
   objc_darwin.go      the bridge to AVFoundation and Foundation
-  objc_stub.go        stubs so the module builds and vets off macOS
+  objc_stub.go        a bridge that fails, so the module builds off macOS
+  fake_test.go        a fake bridge that records set calls
 docs/
 ```
 
@@ -35,11 +37,23 @@ is no cgo.
 functions.
 
 - `cmd/videobg` tests argument handling, app selection and output.
-- `internal/videofx` tests name and image resolution on every platform.
+- `internal/videofx` runs its logic against `fakeBridge` on every platform:
+  the all-or-nothing checks, the order of set calls, reading state back, and
+  app discovery. It also tests name and image resolution.
 - `objc_darwin_test.go` runs on macOS only. `TestLoad` binds every private
   symbol. It fails when Apple renames one the background needs and logs any
-  other that is missing. The rest test string conversion
-  and app discovery against fixture `.app` bundles in a temp directory.
+  other that is missing. The rest test string conversion and `Info.plist`
+  reading against fixture `.app` bundles in a temp directory.
+
+A new test that changes settings must use `useFake`. Never call a setter on
+the real bridge.
+
+## Debugging
+
+`videobg -v <command>`, or `VIDEOBG_DEBUG=1`, logs to stderr: the macOS
+version, each symbol bound or missing, the apps found and why, any check that
+stopped a change, every set call, and the raw values read back. stdout does
+not change. Add `slog.Debug` calls for anything new that touches the system.
 
 To check a real change, use an app you are not in a call with:
 
