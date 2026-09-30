@@ -2,18 +2,15 @@
 
 ## Toolchain
 
-[devbox](https://www.jetify.com/devbox) pins Go 1.27 and sets `CGO_ENABLED=0`.
-With [direnv](https://direnv.net), `direnv allow` loads the environment when
-you enter the directory. Otherwise use `devbox shell` or the scripts:
+You need Go 1.27 on your `PATH` and `make`. The Makefile sets
+`CGO_ENABLED=0`.
 
-| Script | Does |
+| Target | Does |
 | --- | --- |
-| `devbox run build` | Build `./videobg` |
-| `devbox run install` | Install `videobg` into `$GOBIN` |
-| `devbox run test` | `go test ./...` |
-| `devbox run lint` | `gofmt` check, then `go vet` for macOS and Linux |
-
-Plain Go 1.27 works too. Set `CGO_ENABLED=0`.
+| `make build` | Build `./videobg` |
+| `make install` | Install `videobg` into `$GOBIN` |
+| `make test` | `go test ./...` |
+| `make lint` | `gofmt` check, then `go vet` for macOS and Linux |
 
 ## Layout
 
@@ -45,7 +42,7 @@ functions.
 To check a real change, use an app you are not in a call with:
 
 ```sh
-devbox run build
+make build
 ./videobg status "photo booth"
 ./videobg set purple "photo booth"
 ```
@@ -56,8 +53,8 @@ Then restore what `status` showed first.
 Before a commit:
 
 ```sh
-devbox run lint
-devbox run test
+make lint
+make test
 go run honnef.co/go/tools/cmd/staticcheck@latest ./...
 go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 ```
