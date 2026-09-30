@@ -23,58 +23,59 @@ var ErrNotEligible = errors.New("this Mac does not support camera backgrounds")
 
 // Current reads the state of one app.
 func Current(app string) (State, error) {
-	if err := load(); err != nil {
+	b, err := openBridge()
+	if err != nil {
 		return State{}, err
 	}
-	s := State{App: app, Enabled: map[Effect]bool{}, Image: getURL(app)}
+	s := State{App: app, Enabled: map[Effect]bool{}, Image: b.url(app)}
 	for _, e := range Effects {
-		if isSupported(e, app) {
-			s.Enabled[e] = isEnabled(e, app)
+		if b.supported(e, app) {
+			s.Enabled[e] = b.enabled(e, app)
 		}
 	}
-	if micErr() == nil {
-		s.Mic = micMode(app)
-		s.MicOK = slices.Contains(micModes(app), s.Mic)
+	if b.micErr() == nil {
+		s.Mic = b.mic(app)
+		s.MicOK = slices.Contains(b.micModes(app), s.Mic)
 	}
 	return s, nil
 }
 
 // SetImage sets the background image and turns the effect on.
 func SetImage(path string, apps ...string) error {
-	return change(apps, checkEffect(Background), func(app string) {
-		setURL(path, app)
-		setEnabled(Background, true, app)
+	return change(apps, checkEffect(Background), func(b bridge, app string) {
+		b.setURL(path, app)
+		b.setEnabled(Background, true, app)
 	})
 }
 
 // SetEnabled turns an effect on or off.
 func SetEnabled(e Effect, on bool, apps ...string) error {
-	return change(apps, checkEffect(e), func(app string) { setEnabled(e, on, app) })
+	return change(apps, checkEffect(e), func(b bridge, app string) { b.setEnabled(e, on, app) })
 }
 
 // SetMic sets the mic mode.
 func SetMic(mode MicMode, apps ...string) error {
-	check := func(app string) error {
-		if err := micErr(); err != nil {
+	check := func(b bridge, app string) error {
+		if err := b.micErr(); err != nil {
 			return err
 		}
-		if !slices.Contains(micModes(app), mode) {
+		if !slices.Contains(b.micModes(app), mode) {
 			return fmt.Errorf("%s does not support mic mode %s", app, mode)
 		}
 		return nil
 	}
-	return change(apps, check, func(app string) { setMicMode(mode, app) })
+	return change(apps, check, func(b bridge, app string) { b.setMic(mode, app) })
 }
 
-func checkEffect(e Effect) func(app string) error {
-	return func(app string) error {
-		if e == Background && !isEligible() {
+func checkEffect(e Effect) func(b bridge, app string) error {
+	return func(b bridge, app string) error {
+		if e == Background && !b.eligible() {
 			return ErrNotEligible
 		}
-		if err := effectErr(e); err != nil {
+		if err := b.effectErr(e); err != nil {
 			return err
 		}
-		if !isSupported(e, app) {
+		if !b.supported(e, app) {
 			return fmt.Errorf("%s does not support the %s effect", app, e)
 		}
 		return nil
@@ -82,22 +83,24 @@ func checkEffect(e Effect) func(app string) error {
 }
 
 // change applies to every app, or to none when check fails for any of them.
-func change(apps []string, check func(app string) error, apply func(app string)) error {
+// The setters report nothing, so callers read the state back to confirm.
+func change(apps []string, check func(b bridge, app string) error, apply func(b bridge, app string)) error {
 	for _, app := range apps {
 		if app == "" || strings.ContainsAny(app, " \t\n") {
 			return fmt.Errorf("invalid bundle identifier %q", app)
 		}
 	}
-	if err := load(); err != nil {
+	b, err := openBridge()
+	if err != nil {
 		return err
 	}
 	for _, app := range apps {
-		if err := check(app); err != nil {
+		if err := check(b, app); err != nil {
 			return err
 		}
 	}
 	for _, app := range apps {
-		apply(app)
+		apply(b, app)
 	}
 	return nil
 }

@@ -56,14 +56,15 @@ func appDirs() []string {
 func Apps() ([]App, error) { return appsIn(appDirs()) }
 
 func appsIn(dirs []string) ([]App, error) {
-	if err := load(); err != nil {
+	br, err := openBridge()
+	if err != nil {
 		return nil, err
 	}
 	var apps []App
 	seen := map[string]bool{}
 	for _, dir := range dirs {
 		for _, path := range appPaths(dir) {
-			b, ok := bundleInfo(path)
+			b, ok := br.bundleInfo(path)
 			if !ok || seen[b.id] || !(b.camera || knownApps[b.id]) {
 				continue
 			}
@@ -71,7 +72,7 @@ func appsIn(dirs []string) ([]App, error) {
 			apps = append(apps, App{
 				BundleID: b.id,
 				Name:     cmp.Or(clean(b.displayName), clean(b.name), strings.TrimSuffix(filepath.Base(path), ".app")),
-				Toggled:  toggled(b.id),
+				Toggled:  br.toggled(b.id),
 				Known:    knownApps[b.id],
 			})
 		}

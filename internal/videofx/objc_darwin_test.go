@@ -11,21 +11,22 @@ import (
 // TestLoad fails when Apple renames or removes the private symbols the
 // background needs. It only logs the optional ones, which older macOS lacks.
 func TestLoad(t *testing.T) {
-	if err := load(); err != nil {
+	b, err := newBridge()
+	if err != nil {
 		t.Fatal(err)
 	}
 	for _, e := range Effects {
-		if err := effectErr(e); err != nil {
+		if err := b.effectErr(e); err != nil {
 			t.Logf("%s: %v", e, err)
 		}
 	}
-	if err := micErr(); err != nil {
+	if err := b.micErr(); err != nil {
 		t.Logf("mic: %v", err)
 	}
 }
 
 func TestStringRoundTrip(t *testing.T) {
-	if err := load(); err != nil {
+	if _, err := openBridge(); err != nil {
 		t.Fatal(err)
 	}
 	for _, s := range []string{"", "com.apple.PhotoBooth", "/tmp/with space.png", "café 背景 🎥"} {
@@ -66,16 +67,17 @@ func writeApp(t *testing.T, dir, file, id, name string, camera bool) string {
 }
 
 func TestBundleInfo(t *testing.T) {
-	if err := load(); err != nil {
+	b, err := openBridge()
+	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	got, ok := bundleInfo(writeApp(t, dir, "Caller", "test.videobg.caller", "Caller", true))
+	got, ok := b.bundleInfo(writeApp(t, dir, "Caller", "test.videobg.caller", "Caller", true))
 	want := bundle{id: "test.videobg.caller", name: "Caller", camera: true}
 	if !ok || got != want {
 		t.Errorf("bundleInfo = %+v, %v; want %+v", got, ok, want)
 	}
-	if got, ok := bundleInfo(filepath.Join(dir, "Missing.app")); ok {
+	if got, ok := b.bundleInfo(filepath.Join(dir, "Missing.app")); ok {
 		t.Errorf("bundleInfo of a missing app = %+v", got)
 	}
 }
