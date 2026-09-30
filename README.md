@@ -4,7 +4,7 @@ Set the macOS video effects from the command line. `videobg` changes what
 Control Center > Video Effects shows for each video call app: Background,
 Portrait, Studio Light, Reactions and Mic Mode. You can script it or put it on
 a schedule. Edge Light is not supported: see
-[docs/internals.md](docs/internals.md#why-no-edge-light).
+[docs/how-it-works.md](docs/how-it-works.md#gotchas).
 
 ```sh
 videobg set blue                     # a built-in gradient, for every default app
@@ -20,8 +20,11 @@ videobg status
 ## Install
 
 ```sh
-go install github.com/AndrewMcCraeCA/videobg/cmd/videobg@latest
+GOPRIVATE=github.com/irndru/* go install github.com/irndru/videobg/cmd/videobg@latest
 ```
+
+The repository is private, so git needs access to it. Or clone it and run
+`make install`.
 
 ## Requirements
 
@@ -133,7 +136,7 @@ They are private: Apple does not document them and may change or remove them
 in any macOS update. If that happens, `videobg` reports the missing symbol and
 changes nothing.
 
-See [docs/internals.md](docs/internals.md) for the details and
+See [docs/how-it-works.md](docs/how-it-works.md) for the details and
 [docs/development.md](docs/development.md) to build and test it.
 
 ## Licence

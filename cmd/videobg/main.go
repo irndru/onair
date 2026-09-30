@@ -12,7 +12,7 @@ import (
 	"slices"
 	"text/tabwriter"
 
-	"github.com/AndrewMcCraeCA/videobg/internal/videofx"
+	"github.com/irndru/videobg/internal/videofx"
 )
 
 const usage = `usage: videobg [-v] <command> [args]

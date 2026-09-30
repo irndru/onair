@@ -1,4 +1,4 @@
-module github.com/AndrewMcCraeCA/videobg
+module github.com/irndru/videobg
 
 go 1.27.0
 

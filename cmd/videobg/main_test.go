@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AndrewMcCraeCA/videobg/internal/videofx"
+	"github.com/irndru/videobg/internal/videofx"
 )
 
 func TestUsageErrors(t *testing.T) {
