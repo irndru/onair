@@ -72,9 +72,3 @@ app to `knownApps` in `internal/videofx/apps.go` when either:
 
 Get the bundle identifier with `osascript -e 'id of app "Name"'`. Update the
 list in `docs/internals.md` to match.
-
-## CI
-
-`.github/workflows/ci.yml` runs on macOS and Ubuntu: `gofmt` check, `go vet`,
-`go test`, `go build`. The Go version comes from `go.mod`. The Ubuntu job
-keeps the non-macOS stubs compiling.
