@@ -1,6 +1,6 @@
 //go:build !darwin
 
-package videofx
+package controlcenter
 
 import "errors"
 

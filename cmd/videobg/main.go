@@ -13,7 +13,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/irndru/videobg/internal/videofx"
+	"github.com/irndru/videobg/internal/controlcenter"
 )
 
 const usage = `usage: videobg [-v] <command> [args]
@@ -88,7 +88,7 @@ func run(args []string, out io.Writer) error {
 	case "backgrounds":
 		return printBackgrounds(out)
 	case "apps":
-		apps, err := videofx.Apps()
+		apps, err := controlcenter.Apps()
 		if err != nil {
 			return err
 		}
@@ -98,11 +98,11 @@ func run(args []string, out io.Writer) error {
 			return usageError("background needs on, off or an image")
 		}
 		if args[0] != "on" && args[0] != "off" {
-			image, err := videofx.ResolveImage(args[0])
+			image, err := controlcenter.ResolveImage(args[0])
 			if err != nil {
 				return err
 			}
-			return apply(out, args[1:], func(ids []string) error { return videofx.SetImage(image, ids...) })
+			return apply(out, args[1:], func(ids []string) error { return controlcenter.SetImage(image, ids...) })
 		}
 	case "edge-light":
 		return errEdgeLight
@@ -110,19 +110,19 @@ func run(args []string, out io.Writer) error {
 		if len(args) == 0 {
 			return usageError("mic-mode needs a mode")
 		}
-		mode, ok := videofx.ParseMicMode(args[0])
+		mode, ok := controlcenter.ParseMicMode(args[0])
 		if !ok {
 			return usageError(fmt.Sprintf("unknown mic mode %q", args[0]))
 		}
-		return apply(out, args[1:], func(ids []string) error { return videofx.SetMic(mode, ids...) })
+		return apply(out, args[1:], func(ids []string) error { return controlcenter.SetMic(mode, ids...) })
 	case "status":
 		return apply(out, args, func([]string) error { return nil })
 	}
-	if effect, ok := videofx.ParseEffect(cmd); ok {
+	if effect, ok := controlcenter.ParseEffect(cmd); ok {
 		if len(args) == 0 || args[0] != "on" && args[0] != "off" {
 			return usageError(cmd + " needs on or off")
 		}
-		return apply(out, args[1:], func(ids []string) error { return videofx.SetEnabled(effect, args[0] == "on", ids...) })
+		return apply(out, args[1:], func(ids []string) error { return controlcenter.SetEnabled(effect, args[0] == "on", ids...) })
 	}
 	return usageError(fmt.Sprintf("unknown command %q", cmd))
 }
@@ -136,14 +136,14 @@ func version() string {
 
 // apply runs change on the selected apps, then prints their state.
 func apply(out io.Writer, args []string, change func(ids []string) error) error {
-	apps, err := videofx.Apps()
+	apps, err := controlcenter.Apps()
 	if err != nil {
 		return err
 	}
-	return applyTo(out, apps, args, change, videofx.Current)
+	return applyTo(out, apps, args, change, controlcenter.Current)
 }
 
-func applyTo(out io.Writer, apps []videofx.App, args []string, change func(ids []string) error, current func(id string) (videofx.State, error)) error {
+func applyTo(out io.Writer, apps []controlcenter.App, args []string, change func(ids []string) error, current func(id string) (controlcenter.State, error)) error {
 	ids, err := selectApps(apps, args)
 	if err != nil {
 		return err
@@ -151,7 +151,7 @@ func applyTo(out io.Writer, apps []videofx.App, args []string, change func(ids [
 	if err := change(ids); err != nil {
 		return err
 	}
-	states := make([]videofx.State, len(ids))
+	states := make([]controlcenter.State, len(ids))
 	for i, id := range ids {
 		if states[i], err = current(id); err != nil {
 			return err
@@ -160,9 +160,9 @@ func applyTo(out io.Writer, apps []videofx.App, args []string, change func(ids [
 	return printStates(out, apps, states)
 }
 
-func selectApps(apps []videofx.App, args []string) ([]string, error) {
+func selectApps(apps []controlcenter.App, args []string) ([]string, error) {
 	if len(args) == 0 {
-		ids := videofx.Defaults(apps)
+		ids := controlcenter.Defaults(apps)
 		if len(ids) == 0 {
 			return nil, errors.New("no default apps found: name an app or bundle identifier")
 		}
@@ -170,7 +170,7 @@ func selectApps(apps []videofx.App, args []string) ([]string, error) {
 	}
 	var ids []string
 	for _, arg := range args {
-		id, err := videofx.ResolveApp(apps, arg)
+		id, err := controlcenter.ResolveApp(apps, arg)
 		if err != nil {
 			return nil, err
 		}
@@ -181,20 +181,20 @@ func selectApps(apps []videofx.App, args []string) ([]string, error) {
 	return ids, nil
 }
 
-func printStates(out io.Writer, apps []videofx.App, states []videofx.State) error {
+func printStates(out io.Writer, apps []controlcenter.App, states []controlcenter.State) error {
 	names := map[string]string{}
 	for _, a := range apps {
 		names[a.BundleID] = a.Name
 	}
 	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	fmt.Fprint(w, "APP")
-	for _, e := range videofx.Effects {
+	for _, e := range controlcenter.Effects {
 		fmt.Fprint(w, "\t", strings.ToUpper(e.String()))
 	}
 	fmt.Fprintln(w, "\tIMAGE\tMIC-MODE")
 	for _, s := range states {
 		fmt.Fprint(w, cmp.Or(names[s.App], s.App))
-		for _, e := range videofx.Effects {
+		for _, e := range controlcenter.Effects {
 			state := "-"
 			if on, ok := s.Enabled[e]; ok {
 				state = onOff(on)
@@ -217,7 +217,7 @@ func onOff(on bool) string {
 	return "off"
 }
 
-func printApps(out io.Writer, apps []videofx.App) error {
+func printApps(out io.Writer, apps []controlcenter.App) error {
 	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "APP\tBUNDLE ID\tDEFAULT")
 	for _, a := range apps {
@@ -232,8 +232,8 @@ func printApps(out io.Writer, apps []videofx.App) error {
 
 func printBackgrounds(out io.Writer) error {
 	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-	for _, name := range videofx.Builtin() {
-		path, _ := videofx.BuiltinPath(name)
+	for _, name := range controlcenter.Builtin() {
+		path, _ := controlcenter.BuiltinPath(name)
 		fmt.Fprintf(w, "%s\t%s\n", name, path)
 	}
 	return w.Flush()

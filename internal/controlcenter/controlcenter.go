@@ -1,6 +1,6 @@
-// Package videofx reads and changes the macOS video effects and mic mode
-// that Control Center keeps for each app.
-package videofx
+// Package controlcenter reads and changes the video effects and mic mode that
+// Control Center keeps for each app.
+package controlcenter
 
 import (
 	"errors"

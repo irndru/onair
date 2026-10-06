@@ -1,10 +1,10 @@
-package videofx
+package controlcenter
 
 import "sync"
 
-// bridge is the system side of videofx: the private AVFoundation functions
-// and Info.plist reads. Tests swap in a fake so they never reach the real
-// setters.
+// bridge is the system side of controlcenter: the private AVFoundation
+// functions and Info.plist reads. Tests swap in a fake so they never reach the
+// real setters.
 type bridge interface {
 	eligible() bool
 	effectErr(e Effect) error // why this macOS cannot switch e, if it cannot

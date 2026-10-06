@@ -1,4 +1,4 @@
-package videofx
+package controlcenter
 
 import (
 	"errors"

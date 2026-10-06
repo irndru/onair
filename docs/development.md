@@ -11,7 +11,7 @@ go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 ```
 
 All system calls sit behind the `bridge` interface in
-`internal/videofx/bridge.go`. Tests use `fakeBridge` (`useFake`) and must
+`internal/controlcenter/bridge.go`. Tests use `fakeBridge` (`useFake`) and must
 never call a setter on the real one, so `make test` never changes your
 settings.
 

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/irndru/videobg/internal/videofx"
+	"github.com/irndru/videobg/internal/controlcenter"
 )
 
 func TestUsageErrors(t *testing.T) {
@@ -53,7 +53,7 @@ func TestBackgrounds(t *testing.T) {
 	if err := run([]string{"backgrounds"}, &out); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range videofx.Builtin() {
+	for _, name := range controlcenter.Builtin() {
 		if !strings.Contains(out.String(), name+" ") {
 			t.Errorf("backgrounds does not list %q", name)
 		}
@@ -75,14 +75,14 @@ func TestEdgeLight(t *testing.T) {
 }
 
 func TestSelectApps(t *testing.T) {
-	apps := []videofx.App{
+	apps := []controlcenter.App{
 		{BundleID: "com.apple.PhotoBooth", Name: "Photo Booth", Known: true},
 		{BundleID: "com.example.Notes", Name: "Notes"},
 		{BundleID: "us.zoom.xos", Name: "zoom.us", Toggled: true},
 	}
 	tests := []struct {
 		name string
-		apps []videofx.App
+		apps []controlcenter.App
 		args []string
 		want []string
 	}{
@@ -103,19 +103,19 @@ func TestSelectApps(t *testing.T) {
 }
 
 func TestPrintStates(t *testing.T) {
-	apps := []videofx.App{{BundleID: "com.apple.PhotoBooth", Name: "Photo Booth"}}
-	states := []videofx.State{
+	apps := []controlcenter.App{{BundleID: "com.apple.PhotoBooth", Name: "Photo Booth"}}
+	states := []controlcenter.State{
 		{
 			App: "com.apple.PhotoBooth",
-			Enabled: map[videofx.Effect]bool{
-				videofx.Portrait: false, videofx.StudioLight: true, videofx.Reactions: true,
-				videofx.Background: true,
+			Enabled: map[controlcenter.Effect]bool{
+				controlcenter.Portrait: false, controlcenter.StudioLight: true, controlcenter.Reactions: true,
+				controlcenter.Background: true,
 			},
 			Image: "/tmp/a.png",
-			Mic:   videofx.VoiceIsolation,
+			Mic:   controlcenter.VoiceIsolation,
 			MicOK: true,
 		},
-		{App: "org.example.Other", Enabled: map[videofx.Effect]bool{videofx.Background: false}},
+		{App: "org.example.Other", Enabled: map[controlcenter.Effect]bool{controlcenter.Background: false}},
 	}
 	var out bytes.Buffer
 	if err := printStates(&out, apps, states); err != nil {
@@ -130,12 +130,12 @@ func TestPrintStates(t *testing.T) {
 }
 
 func TestApplyTo(t *testing.T) {
-	apps := []videofx.App{
+	apps := []controlcenter.App{
 		{BundleID: "com.apple.PhotoBooth", Name: "Photo Booth", Known: true},
 		{BundleID: "us.zoom.xos", Name: "zoom.us", Known: true},
 	}
-	current := func(id string) (videofx.State, error) {
-		return videofx.State{App: id, Enabled: map[videofx.Effect]bool{videofx.Background: id == "us.zoom.xos"}}, nil
+	current := func(id string) (controlcenter.State, error) {
+		return controlcenter.State{App: id, Enabled: map[controlcenter.Effect]bool{controlcenter.Background: id == "us.zoom.xos"}}, nil
 	}
 	var changed []string
 	change := func(ids []string) error { changed = ids; return nil }
@@ -157,7 +157,7 @@ func TestApplyTo(t *testing.T) {
 	if err := applyTo(&out, apps, nil, func([]string) error { return failed }, current); err != failed {
 		t.Errorf("change error: got %v", err)
 	}
-	if err := applyTo(&out, apps, nil, change, func(string) (videofx.State, error) { return videofx.State{}, failed }); err != failed {
+	if err := applyTo(&out, apps, nil, change, func(string) (controlcenter.State, error) { return controlcenter.State{}, failed }); err != failed {
 		t.Errorf("current error: got %v", err)
 	}
 	if out.Len() != 0 {
@@ -166,7 +166,7 @@ func TestApplyTo(t *testing.T) {
 }
 
 func TestPrintApps(t *testing.T) {
-	apps := []videofx.App{
+	apps := []controlcenter.App{
 		{BundleID: "com.apple.PhotoBooth", Name: "Photo Booth", Known: true},
 		{BundleID: "com.example.Notes", Name: "Notes"},
 	}
