@@ -1,0 +1,240 @@
+// Command onair sets the macOS video effects and mic mode per app.
+package main
+
+import (
+	"cmp"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"os"
+	"runtime/debug"
+	"slices"
+	"strings"
+	"text/tabwriter"
+
+	"github.com/irndru/onair/internal/controlcenter"
+)
+
+const usage = `usage: onair [-v] <command> [args]
+
+Commands:
+  status [app...]                     show every effect, the image and the mic mode
+  apps                                list the apps onair knows about
+  backgrounds                         list the built-in images
+  version                             print the version
+  help                                print this help
+
+Video Effects menu:
+  portrait on|off [app...]            turn Portrait on or off
+  studio-light on|off [app...]        turn Studio Light on or off
+  edge-light                          not supported: switch it in Control Center
+  reactions on|off [app...]           turn Reactions on or off
+  background on|off [app...]          turn Background on or off, keeping the image
+  background <image> [app...]         set the background image and turn it on
+  mic-mode <mode> [app...]            set the mic mode
+
+<mode> is standard, voice-isolation or wide-spectrum.
+<image> is a built-in name or the path of an image file.
+<app> is a name from "onair apps" or a bundle identifier.
+With no app, a command applies to every default app.
+-v, or ONAIR_DEBUG=1, prints debug output to stderr.
+`
+
+// errEdgeLight explains the one menu switch onair cannot reach.
+var errEdgeLight = errors.New("Edge Light can only be switched in Control Center")
+
+type usageError string
+
+func (e usageError) Error() string { return string(e) }
+
+func main() {
+	args := os.Args[1:]
+	verbose := len(args) > 0 && args[0] == "-v"
+	if verbose {
+		args = args[1:]
+	}
+	if verbose || os.Getenv("ONAIR_DEBUG") != "" {
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	}
+	err := run(args, os.Stdout)
+	var usageErr usageError
+	switch {
+	case err == nil:
+	case errors.As(err, &usageErr):
+		if usageErr != "" {
+			fmt.Fprintf(os.Stderr, "onair: %s\n\n", usageErr)
+		}
+		fmt.Fprint(os.Stderr, usage)
+		os.Exit(2)
+	default:
+		fmt.Fprintln(os.Stderr, "onair:", err)
+		os.Exit(1)
+	}
+}
+
+func run(args []string, out io.Writer) error {
+	if len(args) == 0 {
+		return usageError("")
+	}
+	cmd, args := args[0], args[1:]
+	switch cmd {
+	case "help", "-h", "--help":
+		fmt.Fprint(out, usage)
+		return nil
+	case "version":
+		fmt.Fprintln(out, "onair", version())
+		return nil
+	case "backgrounds":
+		return printBackgrounds(out)
+	case "apps":
+		apps, err := controlcenter.Apps()
+		if err != nil {
+			return err
+		}
+		return printApps(out, apps)
+	case "background":
+		if len(args) == 0 {
+			return usageError("background needs on, off or an image")
+		}
+		if args[0] != "on" && args[0] != "off" {
+			image, err := controlcenter.ResolveImage(args[0])
+			if err != nil {
+				return err
+			}
+			return apply(out, args[1:], func(ids []string) error { return controlcenter.SetImage(image, ids...) })
+		}
+	case "edge-light":
+		return errEdgeLight
+	case "mic-mode":
+		if len(args) == 0 {
+			return usageError("mic-mode needs a mode")
+		}
+		mode, ok := controlcenter.ParseMicMode(args[0])
+		if !ok {
+			return usageError(fmt.Sprintf("unknown mic mode %q", args[0]))
+		}
+		return apply(out, args[1:], func(ids []string) error { return controlcenter.SetMic(mode, ids...) })
+	case "status":
+		return apply(out, args, func([]string) error { return nil })
+	}
+	if effect, ok := controlcenter.ParseEffect(cmd); ok {
+		if len(args) == 0 || args[0] != "on" && args[0] != "off" {
+			return usageError(cmd + " needs on or off")
+		}
+		return apply(out, args[1:], func(ids []string) error { return controlcenter.SetEnabled(effect, args[0] == "on", ids...) })
+	}
+	return usageError(fmt.Sprintf("unknown command %q", cmd))
+}
+
+func version() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		return cmp.Or(info.Main.Version, "(devel)")
+	}
+	return "(devel)"
+}
+
+// apply runs change on the selected apps, then prints their state.
+func apply(out io.Writer, args []string, change func(ids []string) error) error {
+	apps, err := controlcenter.Apps()
+	if err != nil {
+		return err
+	}
+	return applyTo(out, apps, args, change, controlcenter.Current)
+}
+
+func applyTo(out io.Writer, apps []controlcenter.App, args []string, change func(ids []string) error, current func(id string) (controlcenter.State, error)) error {
+	ids, err := selectApps(apps, args)
+	if err != nil {
+		return err
+	}
+	if err := change(ids); err != nil {
+		return err
+	}
+	states := make([]controlcenter.State, len(ids))
+	for i, id := range ids {
+		if states[i], err = current(id); err != nil {
+			return err
+		}
+	}
+	return printStates(out, apps, states)
+}
+
+func selectApps(apps []controlcenter.App, args []string) ([]string, error) {
+	if len(args) == 0 {
+		ids := controlcenter.Defaults(apps)
+		if len(ids) == 0 {
+			return nil, errors.New("no default apps found: name an app or bundle identifier")
+		}
+		return ids, nil
+	}
+	var ids []string
+	for _, arg := range args {
+		id, err := controlcenter.ResolveApp(apps, arg)
+		if err != nil {
+			return nil, err
+		}
+		if !slices.Contains(ids, id) {
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
+}
+
+func printStates(out io.Writer, apps []controlcenter.App, states []controlcenter.State) error {
+	names := map[string]string{}
+	for _, a := range apps {
+		names[a.BundleID] = a.Name
+	}
+	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	fmt.Fprint(w, "APP")
+	for _, e := range controlcenter.Effects {
+		fmt.Fprint(w, "\t", strings.ToUpper(e.String()))
+	}
+	fmt.Fprintln(w, "\tIMAGE\tMIC-MODE")
+	for _, s := range states {
+		fmt.Fprint(w, cmp.Or(names[s.App], s.App))
+		for _, e := range controlcenter.Effects {
+			state := "-"
+			if on, ok := s.Enabled[e]; ok {
+				state = onOff(on)
+			}
+			fmt.Fprint(w, "\t", state)
+		}
+		mic := "-"
+		if s.MicOK {
+			mic = s.Mic.String()
+		}
+		fmt.Fprintf(w, "\t%s\t%s\n", cmp.Or(s.Image, "-"), mic)
+	}
+	return w.Flush()
+}
+
+func onOff(on bool) string {
+	if on {
+		return "on"
+	}
+	return "off"
+}
+
+func printApps(out io.Writer, apps []controlcenter.App) error {
+	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "APP\tBUNDLE ID\tDEFAULT")
+	for _, a := range apps {
+		def := "-"
+		if a.Default() {
+			def = "yes"
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\n", a.Name, a.BundleID, def)
+	}
+	return w.Flush()
+}
+
+func printBackgrounds(out io.Writer) error {
+	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	for _, name := range controlcenter.Builtin() {
+		path, _ := controlcenter.BuiltinPath(name)
+		fmt.Fprintf(w, "%s\t%s\n", name, path)
+	}
+	return w.Flush()
+}
