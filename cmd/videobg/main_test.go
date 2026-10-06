@@ -14,9 +14,9 @@ import (
 
 func TestUsageErrors(t *testing.T) {
 	for _, args := range [][]string{
-		nil, {"bogus"}, {"set"},
+		nil, {"bogus"}, {"set", "blue"}, {"on"}, {"studio", "on"}, {"mic", "standard"},
 		{"portrait"}, {"portrait", "photo booth"}, {"studio-light", "ON"}, {"edge", "on"},
-		{"mic"}, {"mic", "loud"},
+		{"background"}, {"mic-mode"}, {"mic-mode", "isolation"},
 	} {
 		err := run(args, io.Discard)
 		var usageErr usageError
@@ -60,11 +60,17 @@ func TestBackgrounds(t *testing.T) {
 	}
 }
 
-func TestSetMissingImage(t *testing.T) {
-	err := run([]string{"set", filepath.Join(t.TempDir(), "missing.png")}, io.Discard)
+func TestBackgroundMissingImage(t *testing.T) {
+	err := run([]string{"background", filepath.Join(t.TempDir(), "missing.png")}, io.Discard)
 	var usageErr usageError
 	if err == nil || errors.As(err, &usageErr) {
 		t.Errorf("err = %v, want a non-usage error", err)
+	}
+}
+
+func TestEdgeLight(t *testing.T) {
+	if err := run([]string{"edge-light", "on"}, io.Discard); err != errEdgeLight {
+		t.Errorf("err = %v, want errEdgeLight", err)
 	}
 }
 

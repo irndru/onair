@@ -1,20 +1,20 @@
 # videobg
 
 Set the macOS video effects from the command line. `videobg` changes what
-Control Center > Video Effects shows for each video call app: Background,
-Portrait, Studio Light, Reactions and Mic Mode. You can script it or put it on
+Control Center > Video Effects shows for each video call app: Portrait, Studio
+Light, Reactions, Background and Mic Mode. You can script it or put it on
 a schedule. Edge Light is not supported: see
 [docs/how-it-works.md](docs/how-it-works.md#gotchas).
 
 ```sh
-videobg set blue                     # a built-in gradient, for every default app
-videobg set ~/Pictures/office.jpg    # your own image
-videobg set dark zoom.us "Google Chrome"
-videobg off                          # turn the background off, keep the image
-videobg portrait on                  # blur the background
-videobg studio on facetime
-videobg mic isolation
 videobg status
+videobg portrait on                         # blur the background
+videobg studio-light on facetime
+videobg background blue                     # a built-in gradient, for every default app
+videobg background ~/Pictures/office.jpg    # your own image
+videobg background dark zoom.us "Google Chrome"
+videobg background off                      # turn the background off, keep the image
+videobg mic-mode voice-isolation
 ```
 
 ## Install
@@ -41,31 +41,28 @@ No admin rights or privacy prompts are needed.
 
 | Command | Does |
 | --- | --- |
-| `videobg set <image> [app...]` | Set the background image and turn the effect on |
-| `videobg on [app...]` | Turn the background on, keeping the image |
-| `videobg off [app...]` | Turn the background off, keeping the image |
-| `videobg <effect> on\|off [app...]` | Turn an effect on or off |
-| `videobg mic <mode> [app...]` | Set the mic mode |
-| `videobg status [app...]` | Show every effect, the mic mode and the image for each app |
+| `videobg status [app...]` | Show every effect, the image and the mic mode for each app |
 | `videobg apps` | List the apps videobg knows about |
 | `videobg backgrounds` | List the built-in images |
 | `videobg version` | Print the version |
 | `videobg help` | Print usage |
 
-## Effects and mic mode
+The rest follow the Video Effects menu, in its order:
 
-| `<effect>` | Control Center name |
+| Command | Does |
 | --- | --- |
-| `background` | Background |
-| `portrait` | Portrait |
-| `studio` | Studio Light |
-| `reactions` | Reactions |
+| `videobg portrait on\|off [app...]` | Turn Portrait on or off |
+| `videobg studio-light on\|off [app...]` | Turn Studio Light on or off |
+| `videobg edge-light` | Fails: Edge Light can only be switched in Control Center |
+| `videobg reactions on\|off [app...]` | Turn Reactions on or off |
+| `videobg background on\|off [app...]` | Turn Background on or off, keeping the image |
+| `videobg background <image> [app...]` | Set the background image and turn it on |
+| `videobg mic-mode <mode> [app...]` | Set the mic mode |
 
-`videobg background on` is the same as `videobg on`.
-
-`<mode>` is `standard`, `isolation` (Voice Isolation) or `wide` (Wide
-Spectrum). Not every app supports every mode. A command that names a mode or
-effect an app does not support fails and changes nothing.
+Each command and mode is the menu label in lower case, with hyphens for
+spaces. `<mode>` is `standard`, `voice-isolation` or `wide-spectrum`. Not every
+app supports every mode. A command that names a mode or effect an app does
+not support fails and changes nothing.
 
 ## Images
 
@@ -75,8 +72,8 @@ effect an app does not support fails and changes nothing.
 `orange`, `yellow`, `green`, `off-white` and `dark`. These are Apple's own
 gradients.
 
-A built-in name wins over a file with the same name. Use `./blue` to mean the
-file.
+A built-in name wins over a file with the same name, and `on` and `off` win
+over files named `on` and `off`. Use `./blue` to mean the file.
 
 Animated images do not animate. A GIF shows its first frame.
 
@@ -107,13 +104,13 @@ osascript -e 'id of app "Zoom"'
 ## Output and exit codes
 
 Every command that takes `[app...]` prints a header and one line per app:
-each effect as `on` or `off`, the mic mode and the image path. `-` means the
+each effect as `on` or `off`, the image path and the mic mode. `-` means the
 app does not support it, or has no image.
 
 ```
-APP            BACKGROUND  PORTRAIT  STUDIO  REACTIONS  MIC        IMAGE
-Photo Booth    on          off       on      on         isolation  /Users/me/Pictures/office.jpg
-Google Chrome  off         off       off     on         -          -
+APP            PORTRAIT  STUDIO-LIGHT  REACTIONS  BACKGROUND  IMAGE                          MIC-MODE
+Photo Booth    off       on            on         on          /Users/me/Pictures/office.jpg  voice-isolation
+Google Chrome  off       off           on         off         -                              -
 ```
 
 | Exit code | Meaning |

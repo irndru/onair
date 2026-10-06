@@ -18,23 +18,31 @@ import (
 
 const usage = `usage: videobg [-v] <command> [args]
 
-  set <image> [app...]          set the background image and turn it on
-  on|off [app...]               turn the background on or off, keeping the image
-  <effect> on|off [app...]      turn an effect on or off
-  mic <mode> [app...]           set the mic mode
-  status [app...]               show every effect, the image and the mic mode
-  apps                          list the apps videobg knows about
-  backgrounds                   list the built-in images
-  version                       print the version
-  help                          print this help
+Commands:
+  status [app...]                     show every effect, the image and the mic mode
+  apps                                list the apps videobg knows about
+  backgrounds                         list the built-in images
+  version                             print the version
+  help                                print this help
 
-<effect> is portrait, studio-light, reactions or background.
+Video Effects menu:
+  portrait on|off [app...]            turn Portrait on or off
+  studio-light on|off [app...]        turn Studio Light on or off
+  edge-light                          not supported: switch it in Control Center
+  reactions on|off [app...]           turn Reactions on or off
+  background on|off [app...]          turn Background on or off, keeping the image
+  background <image> [app...]         set the background image and turn it on
+  mic-mode <mode> [app...]            set the mic mode
+
 <mode> is standard, voice-isolation or wide-spectrum.
 <image> is a built-in name or the path of an image file.
 <app> is a name from "videobg apps" or a bundle identifier.
 With no app, a command applies to every default app.
 -v, or VIDEOBG_DEBUG=1, prints debug output to stderr.
 `
+
+// errEdgeLight explains the one menu switch videobg cannot reach.
+var errEdgeLight = errors.New("Edge Light can only be switched in Control Center")
 
 type usageError string
 
@@ -85,20 +93,22 @@ func run(args []string, out io.Writer) error {
 			return err
 		}
 		return printApps(out, apps)
-	case "set":
+	case "background":
 		if len(args) == 0 {
-			return usageError("set needs an image")
+			return usageError("background needs on, off or an image")
 		}
-		image, err := videofx.ResolveImage(args[0])
-		if err != nil {
-			return err
+		if args[0] != "on" && args[0] != "off" {
+			image, err := videofx.ResolveImage(args[0])
+			if err != nil {
+				return err
+			}
+			return apply(out, args[1:], func(ids []string) error { return videofx.SetImage(image, ids...) })
 		}
-		return apply(out, args[1:], func(ids []string) error { return videofx.SetImage(image, ids...) })
-	case "on", "off":
-		return apply(out, args, func(ids []string) error { return videofx.SetEnabled(videofx.Background, cmd == "on", ids...) })
-	case "mic":
+	case "edge-light":
+		return errEdgeLight
+	case "mic-mode":
 		if len(args) == 0 {
-			return usageError("mic needs a mode")
+			return usageError("mic-mode needs a mode")
 		}
 		mode, ok := videofx.ParseMicMode(args[0])
 		if !ok {
