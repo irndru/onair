@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime/debug"
 	"slices"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/irndru/videobg/internal/videofx"
@@ -27,8 +28,8 @@ const usage = `usage: videobg [-v] <command> [args]
   version                       print the version
   help                          print this help
 
-<effect> is background, portrait, studio or reactions.
-<mode> is standard, isolation or wide.
+<effect> is portrait, studio-light, reactions or background.
+<mode> is standard, voice-isolation or wide-spectrum.
 <image> is a built-in name or the path of an image file.
 <app> is a name from "videobg apps" or a bundle identifier.
 With no app, a command applies to every default app.
@@ -176,7 +177,11 @@ func printStates(out io.Writer, apps []videofx.App, states []videofx.State) erro
 		names[a.BundleID] = a.Name
 	}
 	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "APP\tBACKGROUND\tPORTRAIT\tSTUDIO\tREACTIONS\tMIC\tIMAGE")
+	fmt.Fprint(w, "APP")
+	for _, e := range videofx.Effects {
+		fmt.Fprint(w, "\t", strings.ToUpper(e.String()))
+	}
+	fmt.Fprintln(w, "\tIMAGE\tMIC-MODE")
 	for _, s := range states {
 		fmt.Fprint(w, cmp.Or(names[s.App], s.App))
 		for _, e := range videofx.Effects {
@@ -190,7 +195,7 @@ func printStates(out io.Writer, apps []videofx.App, states []videofx.State) erro
 		if s.MicOK {
 			mic = s.Mic.String()
 		}
-		fmt.Fprintf(w, "\t%s\t%s\n", mic, cmp.Or(s.Image, "-"))
+		fmt.Fprintf(w, "\t%s\t%s\n", cmp.Or(s.Image, "-"), mic)
 	}
 	return w.Flush()
 }

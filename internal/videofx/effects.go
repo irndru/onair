@@ -8,24 +8,25 @@ import (
 // Effect is one switch in Control Center's Video Effects menu.
 type Effect int
 
-// The effects, in display order.
+// The effects, in menu order. Edge Light is missing: see docs/how-it-works.md.
 const (
-	Background Effect = iota
-	Portrait
-	Studio
+	Portrait Effect = iota
+	StudioLight
 	Reactions
+	Background
 	numEffects
 )
 
+// Each name is the menu label in lower case, with hyphens for spaces.
 var effectNames = [numEffects]string{
-	Background: "background",
-	Portrait:   "portrait",
-	Studio:     "studio",
-	Reactions:  "reactions",
+	Portrait:    "portrait",
+	StudioLight: "studio-light",
+	Reactions:   "reactions",
+	Background:  "background",
 }
 
-// Effects lists every effect in display order.
-var Effects = [numEffects]Effect{Background, Portrait, Studio, Reactions}
+// Effects lists every effect in menu order.
+var Effects = [numEffects]Effect{Portrait, StudioLight, Reactions, Background}
 
 // String returns the effect's command name.
 func (e Effect) String() string {
@@ -49,12 +50,13 @@ type MicMode int
 
 // The mic modes.
 const (
-	Standard  MicMode = 0
-	Wide      MicMode = 1
-	Isolation MicMode = 2
+	Standard       MicMode = 0
+	WideSpectrum   MicMode = 1
+	VoiceIsolation MicMode = 2
 )
 
-var micNames = [...]string{Standard: "standard", Wide: "wide", Isolation: "isolation"}
+// Each name is the menu label in lower case, with hyphens for spaces.
+var micNames = [...]string{Standard: "standard", WideSpectrum: "wide-spectrum", VoiceIsolation: "voice-isolation"}
 
 // String returns the mode's command name.
 func (m MicMode) String() string {

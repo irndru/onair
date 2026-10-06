@@ -15,7 +15,7 @@ import (
 func TestUsageErrors(t *testing.T) {
 	for _, args := range [][]string{
 		nil, {"bogus"}, {"set"},
-		{"portrait"}, {"portrait", "photo booth"}, {"studio", "ON"}, {"edge", "on"},
+		{"portrait"}, {"portrait", "photo booth"}, {"studio-light", "ON"}, {"edge", "on"},
 		{"mic"}, {"mic", "loud"},
 	} {
 		err := run(args, io.Discard)
@@ -102,11 +102,11 @@ func TestPrintStates(t *testing.T) {
 		{
 			App: "com.apple.PhotoBooth",
 			Enabled: map[videofx.Effect]bool{
-				videofx.Background: true, videofx.Portrait: false, videofx.Studio: true,
-				videofx.Reactions: true,
+				videofx.Portrait: false, videofx.StudioLight: true, videofx.Reactions: true,
+				videofx.Background: true,
 			},
 			Image: "/tmp/a.png",
-			Mic:   videofx.Isolation,
+			Mic:   videofx.VoiceIsolation,
 			MicOK: true,
 		},
 		{App: "org.example.Other", Enabled: map[videofx.Effect]bool{videofx.Background: false}},
@@ -115,9 +115,9 @@ func TestPrintStates(t *testing.T) {
 	if err := printStates(&out, apps, states); err != nil {
 		t.Fatal(err)
 	}
-	want := "APP                BACKGROUND  PORTRAIT  STUDIO  REACTIONS  MIC        IMAGE\n" +
-		"Photo Booth        on          off       on      on         isolation  /tmp/a.png\n" +
-		"org.example.Other  off         -         -       -          -          -\n"
+	want := "APP                PORTRAIT  STUDIO-LIGHT  REACTIONS  BACKGROUND  IMAGE       MIC-MODE\n" +
+		"Photo Booth        off       on            on         on          /tmp/a.png  voice-isolation\n" +
+		"org.example.Other  -         -             -          off         -           -\n"
 	if out.String() != want {
 		t.Errorf("printStates wrote:\n%s\nwant:\n%s", out.String(), want)
 	}

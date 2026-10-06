@@ -16,10 +16,10 @@ const avFoundation = "/System/Library/Frameworks/AVFoundation.framework/AVFounda
 // The menu's Reactions switch is the Gestures effect. The Reactions effect
 // is a different setting that the menu does not show.
 var effectSymbols = [numEffects]string{
-	Background: "AVControlCenterVideoEffectBackgroundReplacement",
-	Portrait:   "AVControlCenterVideoEffectBackgroundBlur",
-	Studio:     "AVControlCenterVideoEffectStudioLighting",
-	Reactions:  "AVControlCenterVideoEffectGestures",
+	Portrait:    "AVControlCenterVideoEffectBackgroundBlur",
+	StudioLight: "AVControlCenterVideoEffectStudioLighting",
+	Reactions:   "AVControlCenterVideoEffectGestures",
+	Background:  "AVControlCenterVideoEffectBackgroundReplacement",
 }
 
 var (

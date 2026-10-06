@@ -8,7 +8,7 @@ func TestParseEffect(t *testing.T) {
 			t.Errorf("ParseEffect(%q) = %v, %v", e, got, ok)
 		}
 	}
-	for _, name := range []string{"", "Portrait", "blur", "mic", "edge"} {
+	for _, name := range []string{"", "Portrait", "blur", "studio", "edge-light", "mic"} {
 		if got, ok := ParseEffect(name); ok || got != 0 {
 			t.Errorf("ParseEffect(%q) = %v, %v; want 0, false", name, got, ok)
 		}
@@ -30,12 +30,12 @@ func TestStringOutOfRange(t *testing.T) {
 }
 
 func TestParseMicMode(t *testing.T) {
-	for _, m := range []MicMode{Standard, Wide, Isolation} {
+	for _, m := range []MicMode{Standard, WideSpectrum, VoiceIsolation} {
 		if got, ok := ParseMicMode(m.String()); !ok || got != m {
 			t.Errorf("ParseMicMode(%q) = %v, %v", m, got, ok)
 		}
 	}
-	for _, name := range []string{"", "Standard", "voice"} {
+	for _, name := range []string{"", "Standard", "isolation", "wide"} {
 		if got, ok := ParseMicMode(name); ok || got != 0 {
 			t.Errorf("ParseMicMode(%q) = %v, %v; want 0, false", name, got, ok)
 		}

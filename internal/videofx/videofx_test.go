@@ -36,9 +36,9 @@ func TestChangeIsAllOrNothing(t *testing.T) {
 		},
 		{
 			"missing effect symbol",
-			&fakeBridge{effectErrs: map[Effect]error{Studio: errors.New("no studio symbol")}},
-			func(apps ...string) error { return SetEnabled(Studio, true, apps...) },
-			"no studio symbol",
+			&fakeBridge{effectErrs: map[Effect]error{StudioLight: errors.New("no studio-light symbol")}},
+			func(apps ...string) error { return SetEnabled(StudioLight, true, apps...) },
+			"no studio-light symbol",
 		},
 		{
 			"not eligible",
@@ -49,19 +49,19 @@ func TestChangeIsAllOrNothing(t *testing.T) {
 		{
 			"missing mic symbols",
 			&fakeBridge{micMissing: errors.New("no mic symbol")},
-			func(apps ...string) error { return SetMic(Isolation, apps...) },
+			func(apps ...string) error { return SetMic(VoiceIsolation, apps...) },
 			"no mic symbol",
 		},
 		{
 			// Setting an unsupported mode raises an Objective-C exception.
 			"unsupported mic mode",
 			&fakeBridge{apps: map[string]*fakeApp{
-				"a.one":   {micModes: []MicMode{Standard, Isolation}},
+				"a.one":   {micModes: []MicMode{Standard, VoiceIsolation}},
 				"a.two":   {micModes: []MicMode{Standard}},
-				"a.three": {micModes: []MicMode{Standard, Isolation}},
+				"a.three": {micModes: []MicMode{Standard, VoiceIsolation}},
 			}},
-			func(apps ...string) error { return SetMic(Isolation, apps...) },
-			"a.two does not support mic mode isolation",
+			func(apps ...string) error { return SetMic(VoiceIsolation, apps...) },
+			"a.two does not support mic mode voice-isolation",
 		},
 	}
 	for _, tt := range tests {
@@ -90,7 +90,7 @@ func TestNotEligibleOnlyBlocksBackground(t *testing.T) {
 }
 
 func TestSetters(t *testing.T) {
-	both := &fakeApp{micModes: []MicMode{Standard, Isolation}}
+	both := &fakeApp{micModes: []MicMode{Standard, VoiceIsolation}}
 	tests := []struct {
 		name string
 		set  func() error
@@ -111,8 +111,8 @@ func TestSetters(t *testing.T) {
 		},
 		{
 			"SetMic",
-			func() error { return SetMic(Isolation, "a.one", "a.two") },
-			[]string{"setMic isolation a.one", "setMic isolation a.two"},
+			func() error { return SetMic(VoiceIsolation, "a.one", "a.two") },
+			[]string{"setMic voice-isolation a.one", "setMic voice-isolation a.two"},
 		},
 	}
 	for _, tt := range tests {
@@ -129,13 +129,13 @@ func TestSetters(t *testing.T) {
 func TestCurrent(t *testing.T) {
 	f := &fakeBridge{apps: map[string]*fakeApp{
 		"a.one": {
-			unsupported: []Effect{Studio},
-			enabled:     map[Effect]bool{Background: true, Studio: true},
+			unsupported: []Effect{StudioLight},
+			enabled:     map[Effect]bool{Background: true, StudioLight: true},
 			image:       "/p.png",
-			mic:         Isolation,
-			micModes:    []MicMode{Standard, Isolation},
+			mic:         VoiceIsolation,
+			micModes:    []MicMode{Standard, VoiceIsolation},
 		},
-		"a.stale":  {mic: Wide, micModes: []MicMode{Standard}},
+		"a.stale":  {mic: WideSpectrum, micModes: []MicMode{Standard}},
 		"a.future": {mic: MicMode(3), micModes: []MicMode{Standard, MicMode(3)}},
 	}}
 	useFake(t, f)
@@ -147,11 +147,11 @@ func TestCurrent(t *testing.T) {
 			App:     "a.one",
 			Enabled: map[Effect]bool{Background: true, Portrait: false, Reactions: false},
 			Image:   "/p.png",
-			Mic:     Isolation,
+			Mic:     VoiceIsolation,
 			MicOK:   true,
 		}},
 		// The recorded mode is not one the app supports, so it is not shown.
-		{"a.stale", State{App: "a.stale", Mic: Wide}},
+		{"a.stale", State{App: "a.stale", Mic: WideSpectrum}},
 		{"a.future", State{App: "a.future", Mic: MicMode(3), MicOK: true}},
 	}
 	for _, tt := range tests {
@@ -160,7 +160,7 @@ func TestCurrent(t *testing.T) {
 			t.Fatal(err)
 		}
 		if tt.want.Enabled == nil {
-			tt.want.Enabled = map[Effect]bool{Background: false, Portrait: false, Studio: false, Reactions: false}
+			tt.want.Enabled = map[Effect]bool{Background: false, Portrait: false, StudioLight: false, Reactions: false}
 		}
 		if !maps.Equal(got.Enabled, tt.want.Enabled) || got.Image != tt.want.Image ||
 			got.Mic != tt.want.Mic || got.MicOK != tt.want.MicOK || got.App != tt.want.App {

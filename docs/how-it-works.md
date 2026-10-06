@@ -26,10 +26,10 @@ NSArray  *AVControlCenterMicrophoneModesModuleGetSupportedMicrophoneModesForBund
 
 | Command | Constant |
 | --- | --- |
-| `background` | `AVControlCenterVideoEffectBackgroundReplacement` |
 | `portrait` | `AVControlCenterVideoEffectBackgroundBlur` |
-| `studio` | `AVControlCenterVideoEffectStudioLighting` |
+| `studio-light` | `AVControlCenterVideoEffectStudioLighting` |
 | `reactions` | `AVControlCenterVideoEffectGestures` |
+| `background` | `AVControlCenterVideoEffectBackgroundReplacement` |
 
 The background symbols are required. The rest are optional: when one is
 missing, only the command that needs it fails.
