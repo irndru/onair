@@ -72,8 +72,8 @@ func TestBundleInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	got, ok := b.bundleInfo(writeApp(t, dir, "Caller", "test.videobg.caller", "Caller", true))
-	want := bundle{id: "test.videobg.caller", name: "Caller", camera: true}
+	got, ok := b.bundleInfo(writeApp(t, dir, "Caller", "test.onair.caller", "Caller", true))
+	want := bundle{id: "test.onair.caller", name: "Caller", camera: true}
 	if !ok || got != want {
 		t.Errorf("bundleInfo = %+v, %v; want %+v", got, ok, want)
 	}
@@ -84,11 +84,11 @@ func TestBundleInfo(t *testing.T) {
 
 func TestAppsIn(t *testing.T) {
 	dir := t.TempDir()
-	writeApp(t, dir, "Caller", "test.videobg.caller", "Caller", true)
+	writeApp(t, dir, "Caller", "test.onair.caller", "Caller", true)
 	writeApp(t, dir, "Chrome", "com.google.Chrome", "Chrome", false)
-	writeApp(t, dir, "Editor", "test.videobg.editor", "Editor", false)
-	writeApp(t, filepath.Join(dir, "Utilities"), "Nested", "test.videobg.nested", "", true)
-	writeApp(t, dir, "Copy", "test.videobg.caller", "Copy", true)
+	writeApp(t, dir, "Editor", "test.onair.editor", "Editor", false)
+	writeApp(t, filepath.Join(dir, "Utilities"), "Nested", "test.onair.nested", "", true)
+	writeApp(t, dir, "Copy", "test.onair.caller", "Copy", true)
 
 	apps, err := appsIn([]string{dir, filepath.Join(dir, "missing")})
 	if err != nil {
@@ -100,8 +100,8 @@ func TestAppsIn(t *testing.T) {
 	}
 	want := []App{
 		{BundleID: "com.google.Chrome", Name: "Chrome", Known: true},
-		{BundleID: "test.videobg.caller", Name: "Caller"},
-		{BundleID: "test.videobg.nested", Name: "Nested"},
+		{BundleID: "test.onair.caller", Name: "Caller"},
+		{BundleID: "test.onair.nested", Name: "Nested"},
 	}
 	if !slices.Equal(apps, want) {
 		t.Errorf("appsIn = %+v\nwant %+v", apps, want)

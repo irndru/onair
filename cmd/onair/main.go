@@ -1,4 +1,4 @@
-// Command videobg sets the macOS video effects and mic mode per app.
+// Command onair sets the macOS video effects and mic mode per app.
 package main
 
 import (
@@ -13,14 +13,14 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/irndru/videobg/internal/controlcenter"
+	"github.com/irndru/onair/internal/controlcenter"
 )
 
-const usage = `usage: videobg [-v] <command> [args]
+const usage = `usage: onair [-v] <command> [args]
 
 Commands:
   status [app...]                     show every effect, the image and the mic mode
-  apps                                list the apps videobg knows about
+  apps                                list the apps onair knows about
   backgrounds                         list the built-in images
   version                             print the version
   help                                print this help
@@ -36,12 +36,12 @@ Video Effects menu:
 
 <mode> is standard, voice-isolation or wide-spectrum.
 <image> is a built-in name or the path of an image file.
-<app> is a name from "videobg apps" or a bundle identifier.
+<app> is a name from "onair apps" or a bundle identifier.
 With no app, a command applies to every default app.
--v, or VIDEOBG_DEBUG=1, prints debug output to stderr.
+-v, or ONAIR_DEBUG=1, prints debug output to stderr.
 `
 
-// errEdgeLight explains the one menu switch videobg cannot reach.
+// errEdgeLight explains the one menu switch onair cannot reach.
 var errEdgeLight = errors.New("Edge Light can only be switched in Control Center")
 
 type usageError string
@@ -54,7 +54,7 @@ func main() {
 	if verbose {
 		args = args[1:]
 	}
-	if verbose || os.Getenv("VIDEOBG_DEBUG") != "" {
+	if verbose || os.Getenv("ONAIR_DEBUG") != "" {
 		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})))
 	}
 	err := run(args, os.Stdout)
@@ -63,12 +63,12 @@ func main() {
 	case err == nil:
 	case errors.As(err, &usageErr):
 		if usageErr != "" {
-			fmt.Fprintf(os.Stderr, "videobg: %s\n\n", usageErr)
+			fmt.Fprintf(os.Stderr, "onair: %s\n\n", usageErr)
 		}
 		fmt.Fprint(os.Stderr, usage)
 		os.Exit(2)
 	default:
-		fmt.Fprintln(os.Stderr, "videobg:", err)
+		fmt.Fprintln(os.Stderr, "onair:", err)
 		os.Exit(1)
 	}
 }
@@ -83,7 +83,7 @@ func run(args []string, out io.Writer) error {
 		fmt.Fprint(out, usage)
 		return nil
 	case "version":
-		fmt.Fprintln(out, "videobg", version())
+		fmt.Fprintln(out, "onair", version())
 		return nil
 	case "backgrounds":
 		return printBackgrounds(out)

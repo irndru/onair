@@ -135,5 +135,5 @@ func ResolveApp(apps []App, query string) (string, error) {
 	if strings.Contains(query, ".") {
 		return query, nil
 	}
-	return "", fmt.Errorf("unknown app %q: run \"videobg apps\" for names, or use a bundle identifier", query)
+	return "", fmt.Errorf("unknown app %q: run \"onair apps\" for names, or use a bundle identifier", query)
 }

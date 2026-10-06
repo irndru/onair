@@ -1,4 +1,4 @@
-module github.com/irndru/videobg
+module github.com/irndru/onair
 
 go 1.27.0
 

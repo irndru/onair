@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/irndru/videobg/internal/controlcenter"
+	"github.com/irndru/onair/internal/controlcenter"
 )
 
 func TestUsageErrors(t *testing.T) {
@@ -43,7 +43,7 @@ func TestVersion(t *testing.T) {
 	if err := run([]string{"version"}, &out); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(out.String(), "videobg ") {
+	if !strings.HasPrefix(out.String(), "onair ") {
 		t.Errorf("version wrote %q", out.String())
 	}
 }

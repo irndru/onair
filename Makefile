@@ -3,10 +3,10 @@ export CGO_ENABLED = 0
 .PHONY: build install test lint
 
 build:
-	go build -o videobg ./cmd/videobg
+	go build -o onair ./cmd/onair
 
 install:
-	go install ./cmd/videobg
+	go install ./cmd/onair
 
 test:
 	go test ./...

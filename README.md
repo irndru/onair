@@ -1,26 +1,26 @@
-# videobg
+# onair
 
-Set the macOS video effects from the command line. `videobg` changes what
-Control Center > Video Effects shows for each video call app: Portrait, Studio
-Light, Reactions, Background and Mic Mode. You can script it or put it on
-a schedule. Edge Light is not supported: see
+Set the macOS video effects and mic mode from the command line. `onair`
+changes what Control Center > Video Effects shows for each video call app:
+Portrait, Studio Light, Reactions, Background and Mic Mode. You can script it
+or put it on a schedule. Edge Light is not supported: see
 [docs/how-it-works.md](docs/how-it-works.md#gotchas).
 
 ```sh
-videobg status
-videobg portrait on                         # blur the background
-videobg studio-light on facetime
-videobg background blue                     # a built-in gradient, for every default app
-videobg background ~/Pictures/office.jpg    # your own image
-videobg background dark zoom.us "Google Chrome"
-videobg background off                      # turn the background off, keep the image
-videobg mic-mode voice-isolation
+onair status
+onair portrait on                       # blur the background
+onair studio-light on facetime
+onair background blue                   # a built-in gradient, for every default app
+onair background ~/Pictures/office.jpg  # your own image
+onair background dark zoom.us "Google Chrome"
+onair background off                    # turn the background off, keep the image
+onair mic-mode voice-isolation
 ```
 
 ## Install
 
 ```sh
-GOPRIVATE=github.com/irndru/* go install github.com/irndru/videobg/cmd/videobg@latest
+GOPRIVATE=github.com/irndru/* go install github.com/irndru/onair/cmd/onair@latest
 ```
 
 The repository is private, so git needs access to it. Or clone it and run
@@ -41,23 +41,23 @@ No admin rights or privacy prompts are needed.
 
 | Command | Does |
 | --- | --- |
-| `videobg status [app...]` | Show every effect, the image and the mic mode for each app |
-| `videobg apps` | List the apps videobg knows about |
-| `videobg backgrounds` | List the built-in images |
-| `videobg version` | Print the version |
-| `videobg help` | Print usage |
+| `onair status [app...]` | Show every effect, the image and the mic mode for each app |
+| `onair apps` | List the apps onair knows about |
+| `onair backgrounds` | List the built-in images |
+| `onair version` | Print the version |
+| `onair help` | Print usage |
 
 The rest follow the Video Effects menu, in its order:
 
 | Command | Does |
 | --- | --- |
-| `videobg portrait on\|off [app...]` | Turn Portrait on or off |
-| `videobg studio-light on\|off [app...]` | Turn Studio Light on or off |
-| `videobg edge-light` | Fails: Edge Light can only be switched in Control Center |
-| `videobg reactions on\|off [app...]` | Turn Reactions on or off |
-| `videobg background on\|off [app...]` | Turn Background on or off, keeping the image |
-| `videobg background <image> [app...]` | Set the background image and turn it on |
-| `videobg mic-mode <mode> [app...]` | Set the mic mode |
+| `onair portrait on\|off [app...]` | Turn Portrait on or off |
+| `onair studio-light on\|off [app...]` | Turn Studio Light on or off |
+| `onair edge-light` | Fails: Edge Light can only be switched in Control Center |
+| `onair reactions on\|off [app...]` | Turn Reactions on or off |
+| `onair background on\|off [app...]` | Turn Background on or off, keeping the image |
+| `onair background <image> [app...]` | Set the background image and turn it on |
+| `onair mic-mode <mode> [app...]` | Set the mic mode |
 
 Each command and mode is the menu label in lower case, with hyphens for
 spaces. `<mode>` is `standard`, `voice-isolation` or `wide-spectrum`. Not every
@@ -68,7 +68,7 @@ not support fails and changes nothing.
 
 `<image>` is either a built-in name or the path of an image file.
 
-`videobg backgrounds` lists the built-in names: `blue`, `purple`, `pink`, `red`,
+`onair backgrounds` lists the built-in names: `blue`, `purple`, `pink`, `red`,
 `orange`, `yellow`, `green`, `off-white` and `dark`. These are Apple's own
 gradients.
 
@@ -79,7 +79,7 @@ Animated images do not animate. A GIF shows its first frame.
 
 ## Apps
 
-macOS keeps a separate background for each app. `videobg apps` lists the
+macOS keeps a separate background for each app. `onair apps` lists the
 installed apps that can use the camera:
 
 ```
@@ -120,17 +120,17 @@ Google Chrome  off       off           on         off         -                 
 | 2 | The command line was wrong. Usage is on stderr. |
 
 For debug output on stderr, put `-v` before the command or set
-`VIDEOBG_DEBUG=1`:
+`ONAIR_DEBUG=1`:
 
 ```sh
-videobg -v portrait on zoom.us
+onair -v portrait on zoom.us
 ```
 
 ## How it works
 
-`videobg` calls the same functions in AVFoundation that Control Center calls.
+`onair` calls the same functions in AVFoundation that Control Center calls.
 They are private: Apple does not document them and may change or remove them
-in any macOS update. If that happens, `videobg` reports the missing symbol and
+in any macOS update. If that happens, `onair` reports the missing symbol and
 changes nothing.
 
 See [docs/how-it-works.md](docs/how-it-works.md) for the details and

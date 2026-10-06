@@ -3,7 +3,7 @@
 macOS keeps each app's video effects and mic mode in the camera daemon,
 `cameracaptured`, keyed by bundle identifier. Control Center changes them
 through private C functions in
-`/System/Library/Frameworks/AVFoundation.framework/AVFoundation`. `videobg`
+`/System/Library/Frameworks/AVFoundation.framework/AVFoundation`. `onair`
 calls the same functions through [purego](https://github.com/ebitengine/purego).
 The public `AVCaptureDevice` class methods only change the calling process's
 own record, so they are no use from a terminal.
@@ -43,10 +43,10 @@ missing, only the command that needs it fails.
   the light. Control Center draws it with its own helper,
   `com.apple.controlcenter.ringlighthelper`, which nothing else can reach.
 - Setting a mic mode outside the app's supported list raises an Objective-C
-  exception that kills the process, so `videobg` checks the list first. Modes
+  exception that kills the process, so `onair` checks the list first. Modes
   are the public `AVCaptureMicrophoneMode` values.
-- Only the mic setter reports failure. `videobg` reads each app back after a
+- Only the mic setter reports failure. `onair` reads each app back after a
   change and prints that.
-- The daemon cannot list apps, so `videobg` scans the Applications folders.
+- The daemon cannot list apps, so `onair` scans the Applications folders.
   Default apps are `knownApps` plus any whose background was toggled before.
 - A path can come back spelled differently, such as with `Versions/A/` added.
