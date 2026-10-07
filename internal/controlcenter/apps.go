@@ -68,7 +68,7 @@ func appsIn(dirs []string) ([]App, error) {
 		slog.Debug("scanning", "dir", dir, "bundles", len(paths))
 		for _, path := range paths {
 			b, ok := br.bundleInfo(path)
-			if !ok || seen[b.id] || !(b.camera || knownApps[b.id]) {
+			if !ok || seen[b.id] || !b.camera && !knownApps[b.id] {
 				continue
 			}
 			seen[b.id] = true

@@ -4,7 +4,7 @@ Set the macOS video effects and mic mode from the command line. `onair`
 changes what Control Center > Video Effects shows for each video call app:
 Portrait, Studio Light, Reactions, Background and Mic Mode. You can script it
 or put it on a schedule. Edge Light is not supported: see
-[docs/how-it-works.md](docs/how-it-works.md#gotchas).
+[ARCHITECTURE.md](ARCHITECTURE.md#gotchas).
 
 ```sh
 onair status
@@ -20,11 +20,10 @@ onair mic-mode voice-isolation
 ## Install
 
 ```sh
-GOPRIVATE=github.com/irndru/* go install github.com/irndru/onair/cmd/onair@latest
+go install github.com/irndru/onair/cmd/onair@latest
 ```
 
-The repository is private, so git needs access to it. Or clone it and run
-`make install`.
+Or clone the repository and run `make install`.
 
 ## Requirements
 
@@ -44,7 +43,7 @@ No admin rights or privacy prompts are needed.
 | `onair status [app...]` | Show every effect, the image and the mic mode for each app |
 | `onair apps` | List the apps onair knows about |
 | `onair backgrounds` | List the built-in images |
-| `onair version` | Print the version |
+| `onair version`, `onair --version` | Print the version |
 | `onair help` | Print usage |
 
 The rest follow the Video Effects menu, in its order:
@@ -53,7 +52,7 @@ The rest follow the Video Effects menu, in its order:
 | --- | --- |
 | `onair portrait on\|off [app...]` | Turn Portrait on or off |
 | `onair studio-light on\|off [app...]` | Turn Studio Light on or off |
-| `onair edge-light` | Fails: Edge Light can only be switched in Control Center |
+| `onair edge-light` | Fails: only Control Center can switch Edge Light |
 | `onair reactions on\|off [app...]` | Turn Reactions on or off |
 | `onair background on\|off [app...]` | Turn Background on or off, keeping the image |
 | `onair background <image> [app...]` | Set the background image and turn it on |
@@ -133,8 +132,8 @@ They are private: Apple does not document them and may change or remove them
 in any macOS update. If that happens, `onair` reports the missing symbol and
 changes nothing.
 
-See [docs/how-it-works.md](docs/how-it-works.md) for the details and
-[docs/development.md](docs/development.md) to build and test it.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the details and
+[CONTRIBUTING.md](CONTRIBUTING.md) to build, test and release it.
 
 ## Licence
 

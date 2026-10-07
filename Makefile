@@ -1,6 +1,6 @@
 export CGO_ENABLED = 0
 
-.PHONY: build install test lint
+.PHONY: build install test lint fmt
 
 build:
 	go build -o onair ./cmd/onair
@@ -12,6 +12,8 @@ test:
 	go test ./...
 
 lint:
-	test -z "$$(gofmt -l .)"
-	go vet ./...
-	GOOS=linux go vet ./...
+	golangci-lint run
+	GOOS=linux golangci-lint run
+
+fmt:
+	golangci-lint fmt
