@@ -8,7 +8,7 @@ import (
 // Effect is one switch in Control Center's Video Effects menu.
 type Effect int
 
-// The effects, in menu order. Edge Light is missing: see docs/how-it-works.md.
+// The effects, in menu order. Edge Light is missing: see ARCHITECTURE.md.
 const (
 	Portrait Effect = iota
 	StudioLight

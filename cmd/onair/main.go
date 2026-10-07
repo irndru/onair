@@ -22,7 +22,7 @@ Commands:
   status [app...]                     show every effect, the image and the mic mode
   apps                                list the apps onair knows about
   backgrounds                         list the built-in images
-  version                             print the version
+  version, --version                  print the version
   help                                print this help
 
 Video Effects menu:
@@ -42,7 +42,7 @@ With no app, a command applies to every default app.
 `
 
 // errEdgeLight explains the one menu switch onair cannot reach.
-var errEdgeLight = errors.New("Edge Light can only be switched in Control Center")
+var errEdgeLight = errors.New("only Control Center can switch Edge Light")
 
 type usageError string
 
@@ -82,7 +82,7 @@ func run(args []string, out io.Writer) error {
 	case "help", "-h", "--help":
 		fmt.Fprint(out, usage)
 		return nil
-	case "version":
+	case "version", "--version":
 		fmt.Fprintln(out, "onair", version())
 		return nil
 	case "backgrounds":

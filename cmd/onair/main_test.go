@@ -39,12 +39,14 @@ func TestHelp(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	var out bytes.Buffer
-	if err := run([]string{"version"}, &out); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.HasPrefix(out.String(), "onair ") {
-		t.Errorf("version wrote %q", out.String())
+	for _, arg := range []string{"version", "--version"} {
+		var out bytes.Buffer
+		if err := run([]string{arg}, &out); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.HasPrefix(out.String(), "onair ") {
+			t.Errorf("run(%q) wrote %q", arg, out.String())
+		}
 	}
 }
 
@@ -69,7 +71,7 @@ func TestBackgroundMissingImage(t *testing.T) {
 }
 
 func TestEdgeLight(t *testing.T) {
-	if err := run([]string{"edge-light", "on"}, io.Discard); err != errEdgeLight {
+	if err := run([]string{"edge-light", "on"}, io.Discard); !errors.Is(err, errEdgeLight) {
 		t.Errorf("err = %v, want errEdgeLight", err)
 	}
 }
@@ -154,10 +156,10 @@ func TestApplyTo(t *testing.T) {
 
 	out.Reset()
 	failed := errors.New("failed")
-	if err := applyTo(&out, apps, nil, func([]string) error { return failed }, current); err != failed {
+	if err := applyTo(&out, apps, nil, func([]string) error { return failed }, current); !errors.Is(err, failed) {
 		t.Errorf("change error: got %v", err)
 	}
-	if err := applyTo(&out, apps, nil, change, func(string) (controlcenter.State, error) { return controlcenter.State{}, failed }); err != failed {
+	if err := applyTo(&out, apps, nil, change, func(string) (controlcenter.State, error) { return controlcenter.State{}, failed }); !errors.Is(err, failed) {
 		t.Errorf("current error: got %v", err)
 	}
 	if out.Len() != 0 {
